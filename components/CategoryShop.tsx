@@ -215,7 +215,7 @@ export function CategoryShop({
                   <button
                     key={s.productId}
                     type="button"
-                    className={`hotspot${cart.has(s.productId) ? " is-in" : ""}${s.y < 0.22 ? " is-high" : ""}`}
+                    className={`hotspot${cart.has(s.productId) ? " is-in" : ""}${s.y < 0.22 ? " is-high" : ""}${s.x > 0.78 ? " is-right" : s.x < 0.22 ? " is-left" : ""}`}
                     style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%`, animationDelay: `${i * 0.25}s` }}
                     onClick={() => setOpen(s.productId)}
                     aria-label={`${item.name} – visa produkten`}
