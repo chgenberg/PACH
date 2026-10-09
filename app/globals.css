@@ -682,6 +682,30 @@ h1 {
   z-index: 3;
 }
 
+.tile.loading .tile-photo {
+  filter: saturate(0.7) brightness(0.98);
+  opacity: 0.7;
+}
+
+.tile-spin {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  border: 3px solid rgba(17, 17, 17, 0.18);
+  border-top-color: rgba(17, 17, 17, 0.6);
+  animation: spin 700ms linear infinite;
+  z-index: 3;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .tile-name {
   position: absolute;
   left: 22px;
