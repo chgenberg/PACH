@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     const width = async (b: Buffer | null) => (b ? ((await sharp(b).metadata()).width ?? 0) : 0);
     const best = verified ?? (alt && (await width(alt)) > (await width(logo)) ? alt : logo);
     const png = await sharp(best).resize(1024, 1024, { fit: "inside", withoutEnlargement: false, kernel: "lanczos3" }).png().toBuffer();
-    return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=86400" } });
+    return new Response(new Uint8Array(png), { headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=60" } });
   } catch {
     return new Response("Hittades inte", { status: 404 });
   }

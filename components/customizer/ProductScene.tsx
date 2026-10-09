@@ -8,20 +8,32 @@ import { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import type { LogoArt } from "@/components/customizer/logoArt";
 import { BASE_COLOR } from "@/lib/colors";
-import type { LogoDesign, Zone } from "@/lib/marking";
+import type { Method, Zone } from "@/lib/marking";
 
 export type Placement = { point: THREE.Vector3; normal: THREE.Vector3 };
 export type SceneApi = { capture: () => string };
+
+/** One print on the product: the logo at a position, or the name print. */
+export type Layer = {
+  key: string;
+  zone: string;
+  point?: [number, number, number];
+  normal?: [number, number, number];
+  sizeCm: number;
+  method: Method;
+  art: LogoArt | null;
+};
 
 type Props = {
   modelUrl: string | null;
   fallback: "box" | "cylinder" | "shirt";
   color: string;
-  design: LogoDesign;
+  layers: Layer[];
+  active: string;
   zones: Zone[];
   sizeCm: number;
-  art: LogoArt | null;
-  onPlace: (p: Placement) => void;
+  onPlace: (key: string, p: Placement) => void;
+  onSelect: (key: string) => void;
   onReady: (api: SceneApi) => void;
 };
 
@@ -112,7 +124,7 @@ function useFallbackObject(kind: Props["fallback"]) {
 }
 
 function Product(props: Props & { object: THREE.Object3D }) {
-  const { color, design, zones, sizeCm, art, onPlace, onReady } = props;
+  const { color, layers, active, zones, sizeCm, onPlace, onSelect, onReady } = props;
   const root = useNormalised(props.object);
   const { gl, scene, camera } = useThree();
   const get = useThree((s) => s.get);
@@ -120,7 +132,7 @@ function Product(props: Props & { object: THREE.Object3D }) {
   const radius = useMemo(() => new THREE.Box3().setFromObject(root).getBoundingSphere(new THREE.Sphere()).radius, [root]);
 
   // Frame the whole product from the side the logo starts on, whatever its proportions.
-  const startDir = useRef(new THREE.Vector3(...((zones.find((z) => z.id === design.zone) ?? zones[0]).dir as [number, number, number])));
+  const startDir = useRef(new THREE.Vector3(...((zones.find((z) => z.id === layers[0]?.zone) ?? zones[0]).dir as [number, number, number])));
   useEffect(() => {
     const { camera: cam, controls } = get();
     const d = startDir.current.clone().normalize();
@@ -134,7 +146,6 @@ function Product(props: Props & { object: THREE.Object3D }) {
       orbit.update();
     }
   }, [get, hasControls, radius]);
-  const decalRef = useRef<THREE.Mesh>(null);
   const meshes = useMemo(() => {
     const list: THREE.Mesh[] = [];
     root.traverse((o) => (o as THREE.Mesh).isMesh && list.push(o as THREE.Mesh));
@@ -146,80 +157,14 @@ function Product(props: Props & { object: THREE.Object3D }) {
     tints.forEach((t) => applyTint(t, color));
   }, [tints, color]);
 
-  const logoSize = useMemo(() => {
-    const width = Math.max(0.01, design.sizeCm / sizeCm);
-    return { width, height: width / (art?.aspect ?? 1) };
-  }, [design.sizeCm, sizeCm, art?.aspect]);
-
-  /** Where the logo goes: a clicked/dragged point, or a ray shot at the model from the zone's direction. */
-  const placement = useMemo<{ mesh: THREE.Mesh; point: THREE.Vector3; normal: THREE.Vector3 } | null>(() => {
-    const box = new THREE.Box3().setFromObject(root);
-    const size = box.getSize(new THREE.Vector3());
-    const ray = new THREE.Raycaster();
-    if (design.zone === "egen" && design.point && design.normal) {
-      const p = new THREE.Vector3(...design.point);
-      const n = new THREE.Vector3(...design.normal).normalize();
-      ray.set(p.clone().addScaledVector(n, 0.5), n.clone().negate());
-    } else {
-      const zone = zones.find((z) => z.id === design.zone) ?? zones[0];
-      const dir = new THREE.Vector3(...zone.dir).normalize();
-      const origin = dir.clone().multiplyScalar(3);
-      const up = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
-      const side = new THREE.Vector3().crossVectors(up, dir).normalize();
-      origin.addScaledVector(side, zone.offset[0] * size.x).addScaledVector(up, zone.offset[1] * (Math.abs(dir.y) > 0.9 ? size.z : size.y));
-      ray.set(origin, dir.clone().negate());
-    }
-    const hit = ray.intersectObjects(meshes, false)[0];
-    if (!hit?.face) return null;
-    const normal = averageNormal(meshes, hit.point, smoothNormal(hit), Math.max(logoSize.width, logoSize.height) * 0.45);
-    return { mesh: hit.object as THREE.Mesh, point: hit.point.clone(), normal };
-  }, [root, meshes, zones, design.zone, design.point, design.normal, logoSize]);
-
-  const texture = useMemo(() => {
-    if (!art) return null;
-    const t = new THREE.CanvasTexture(art.canvas);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 8;
-    return t;
-  }, [art]);
-
-  /**
-   * The decal is projected along the average surface direction under the whole logo and deep enough to
-   * wrap over folds (e.g. where a cap's crown meets the brim); triangles facing away are dropped.
-   */
-  const decal = useMemo(() => {
-    if (!placement || !texture || !art) return null;
-    const { width, height } = logoSize;
-    const target = placement.point.clone().add(placement.normal);
-    const up = Math.abs(placement.normal.y) > 0.92 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
-    const orient = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().lookAt(target, placement.point, up));
-    placement.mesh.updateMatrixWorld(true);
-    const geometry = new DecalGeometry(placement.mesh, placement.point, orient, new THREE.Vector3(width, height, Math.max(width, height) * 2.2));
-    return keepFacing(geometry, placement.normal);
-  }, [placement, texture, art, logoSize]);
-  useEffect(() => () => decal?.dispose(), [decal]);
-
-  const material = useMemo(() => {
-    if (!texture) return null;
-    const embroidered = design.method === "brodyr";
-    return new THREE.MeshStandardMaterial({
-      map: texture,
-      transparent: true,
-      depthTest: true,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -4,
-      roughness: embroidered ? 1 : design.method === "transfer" ? 0.35 : design.method === "gravyr" ? 0.55 : 0.7,
-      metalness: design.method === "gravyr" ? 0.3 : 0,
-    });
-  }, [texture, design.method]);
-
+  const normals = useRef<Record<string, THREE.Vector3>>({});
+  const mainKey = layers[0]?.key ?? "";
   useEffect(() => {
     onReady({
       capture: () => {
         const cam = camera as THREE.PerspectiveCamera;
         const saved = cam.position.clone();
-        const n = placement?.normal ?? new THREE.Vector3(0, 0, 1);
+        const n = normals.current[mainKey] ?? new THREE.Vector3(0, 0, 1);
         const view = new THREE.Vector3(n.x, Math.max(n.y, 0.12), n.z).normalize().multiplyScalar(radius * 2.7);
         cam.position.copy(view);
         cam.lookAt(0, 0, 0);
@@ -230,61 +175,211 @@ function Product(props: Props & { object: THREE.Object3D }) {
         return shot;
       },
     });
-  }, [onReady, camera, gl, scene, placement, radius]);
+  }, [onReady, camera, gl, scene, radius, mainKey]);
 
-  const placeAt = (e: ThreeEvent<PointerEvent | MouseEvent>) => {
-    if (!e.face) return;
-    onPlace({ point: e.point.clone(), normal: smoothNormal(e as unknown as THREE.Intersection) });
-  };
+  // Selecting another print turns the product so that print faces the camera.
+  const shownKey = useRef(active);
+  useEffect(() => {
+    if (shownKey.current === active) return;
+    shownKey.current = active;
+    const n = normals.current[active];
+    if (!n) return;
+    const { camera: cam, controls } = get();
+    const from = cam.position.clone();
+    const to = new THREE.Vector3(n.x, Math.max(n.y, 0.15), n.z).normalize().multiplyScalar(from.length());
+    const start = performance.now();
+    let raf = 0;
+    const step = (t: number) => {
+      const k = Math.min(1, (t - start) / 600);
+      const e = 1 - Math.pow(1 - k, 3);
+      moveCamera(cam, from.clone().lerp(to, e).setLength(from.length()), controls);
+      if (k < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [active, get]);
 
   const click = (e: ThreeEvent<MouseEvent>) => {
-    if (e.delta > 4 || dragging.current) return;
+    if (e.delta > 4 || dragging.current || !e.face) return;
     e.stopPropagation();
-    placeAt(e);
+    onPlace(active, { point: e.point.clone(), normal: smoothNormal(e as unknown as THREE.Intersection) });
   };
 
-  // Drag the logo across the product: grab it, the camera holds still, the logo follows the surface.
-  const dragging = useRef(false);
+  // Drag a print across the product: grab it, the camera holds still, the print follows the surface.
+  const dragging = useRef<string | null>(null);
   const frame = useRef(0);
-  const startDrag = (e: ThreeEvent<PointerEvent>) => {
-    e.stopPropagation();
-    dragging.current = true;
-    const controls = get().controls as unknown as { enabled: boolean } | null;
-    if (controls) controls.enabled = false;
-    document.body.style.cursor = "grabbing";
+  const startDrag = (key: string) => {
+    dragging.current = key;
+    if (key !== active) onSelect(key);
+    const controls = get().controls;
+    setEnabled(controls, false);
+    setCursor("grabbing");
     const end = () => {
-      dragging.current = false;
-      if (controls) controls.enabled = true;
-      document.body.style.cursor = "";
+      dragging.current = null;
+      setEnabled(controls, true);
+      setCursor("");
       window.removeEventListener("pointerup", end);
     };
     window.addEventListener("pointerup", end);
   };
   const drag = (e: ThreeEvent<PointerEvent>) => {
-    if (!dragging.current || e.object === decalRef.current) return;
+    const key = dragging.current;
+    if (!key || e.object.userData.decal) return;
     e.stopPropagation();
     cancelAnimationFrame(frame.current);
     const point = e.point.clone();
     const normal = smoothNormal(e as unknown as THREE.Intersection);
-    frame.current = requestAnimationFrame(() => onPlace({ point, normal }));
+    frame.current = requestAnimationFrame(() => onPlace(key, { point, normal }));
   };
 
   return (
     <>
       <primitive object={root} onClick={click} onPointerMove={drag} />
-      {decal && material ? (
-        <mesh
-          ref={decalRef}
-          geometry={decal}
-          material={material}
-          renderOrder={2}
-          onPointerDown={startDrag}
-          onPointerOver={() => !dragging.current && (document.body.style.cursor = "grab")}
-          onPointerOut={() => !dragging.current && (document.body.style.cursor = "")}
+      {layers.map((l) => (
+        <LogoDecal
+          key={l.key}
+          layer={l}
+          root={root}
+          meshes={meshes}
+          zones={zones}
+          sizeCm={sizeCm}
+          dim={layers.length > 1 && l.key !== active}
+          onNormal={(n) => (normals.current[l.key] = n)}
+          onGrab={() => startDrag(l.key)}
+          isDragging={() => Boolean(dragging.current)}
         />
-      ) : null}
+      ))}
     </>
   );
+}
+
+function LogoDecal({
+  layer,
+  root,
+  meshes,
+  zones,
+  sizeCm,
+  dim,
+  onNormal,
+  onGrab,
+  isDragging,
+}: {
+  layer: Layer;
+  root: THREE.Object3D;
+  meshes: THREE.Mesh[];
+  zones: Zone[];
+  sizeCm: number;
+  dim: boolean;
+  onNormal: (n: THREE.Vector3) => void;
+  onGrab: () => void;
+  isDragging: () => boolean;
+}) {
+  const { art, zone, point, normal, method } = layer;
+  const logoSize = useMemo(() => {
+    const width = Math.max(0.01, layer.sizeCm / sizeCm);
+    return { width, height: width / (art?.aspect ?? 1) };
+  }, [layer.sizeCm, sizeCm, art?.aspect]);
+
+  /** Where the print goes: a clicked/dragged point, or a ray shot at the model from the zone's direction. */
+  const placement = useMemo<{ mesh: THREE.Mesh; point: THREE.Vector3; normal: THREE.Vector3 } | null>(() => {
+    const box = new THREE.Box3().setFromObject(root);
+    const size = box.getSize(new THREE.Vector3());
+    const ray = new THREE.Raycaster();
+    if (zone === "egen" && point && normal) {
+      const p = new THREE.Vector3(...point);
+      const n = new THREE.Vector3(...normal).normalize();
+      ray.set(p.clone().addScaledVector(n, 0.5), n.clone().negate());
+    } else {
+      const z = zones.find((x) => x.id === zone) ?? zones[0];
+      const dir = new THREE.Vector3(...z.dir).normalize();
+      const origin = dir.clone().multiplyScalar(3);
+      const up = Math.abs(dir.y) > 0.9 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
+      const side = new THREE.Vector3().crossVectors(up, dir).normalize();
+      origin.addScaledVector(side, z.offset[0] * size.x).addScaledVector(up, z.offset[1] * (Math.abs(dir.y) > 0.9 ? size.z : size.y));
+      ray.set(origin, dir.clone().negate());
+    }
+    const hit = ray.intersectObjects(meshes, false)[0];
+    if (!hit?.face) return null;
+    const avg = averageNormal(meshes, hit.point, smoothNormal(hit), Math.max(logoSize.width, logoSize.height) * 0.45);
+    return { mesh: hit.object as THREE.Mesh, point: hit.point.clone(), normal: avg };
+  }, [root, meshes, zones, zone, point, normal, logoSize]);
+
+  useEffect(() => {
+    if (placement) onNormal(placement.normal);
+  }, [placement, onNormal]);
+
+  const texture = useMemo(() => {
+    if (!art) return null;
+    const t = new THREE.CanvasTexture(art.canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 8;
+    return t;
+  }, [art]);
+  useEffect(() => () => texture?.dispose(), [texture]);
+
+  /**
+   * The decal is projected along the average surface direction under the whole print and deep enough to
+   * wrap over folds (e.g. where a cap's crown meets the brim); triangles facing away are dropped.
+   */
+  const decal = useMemo(() => {
+    if (!placement || !texture) return null;
+    const { width, height } = logoSize;
+    const target = placement.point.clone().add(placement.normal);
+    const up = Math.abs(placement.normal.y) > 0.92 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
+    const orient = new THREE.Euler().setFromRotationMatrix(new THREE.Matrix4().lookAt(target, placement.point, up));
+    placement.mesh.updateMatrixWorld(true);
+    const geometry = new DecalGeometry(placement.mesh, placement.point, orient, new THREE.Vector3(width, height, Math.max(width, height) * 2.2));
+    return keepFacing(geometry, placement.normal);
+  }, [placement, texture, logoSize]);
+  useEffect(() => () => decal?.dispose(), [decal]);
+
+  const material = useMemo(() => {
+    if (!texture) return null;
+    const embroidered = method === "brodyr";
+    return new THREE.MeshStandardMaterial({
+      map: texture,
+      transparent: true,
+      opacity: dim ? 0.82 : 1,
+      depthTest: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -4,
+      roughness: embroidered ? 1 : method === "transfer" ? 0.35 : method === "gravyr" ? 0.55 : 0.7,
+      metalness: method === "gravyr" ? 0.3 : 0,
+    });
+  }, [texture, method, dim]);
+  useEffect(() => () => material?.dispose(), [material]);
+
+  if (!decal || !material) return null;
+  return (
+    <mesh
+      geometry={decal}
+      material={material}
+      renderOrder={2}
+      userData={{ decal: true }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        onGrab();
+      }}
+      onPointerOver={() => !isDragging() && (document.body.style.cursor = "grab")}
+      onPointerOut={() => !isDragging() && (document.body.style.cursor = "")}
+    />
+  );
+}
+
+function setCursor(c: string) {
+  document.body.style.cursor = c;
+}
+
+function setEnabled(controls: unknown, on: boolean) {
+  const c = controls as { enabled: boolean } | null;
+  if (c) c.enabled = on;
+}
+
+function moveCamera(cam: THREE.Camera, to: THREE.Vector3, controls: unknown) {
+  cam.position.copy(to);
+  cam.lookAt(0, 0, 0);
+  (controls as { update?: () => void } | null)?.update?.();
 }
 
 /** Interpolated vertex normal at a hit, in world space – smoother than the flat face normal. */
@@ -387,7 +482,7 @@ export function ProductScene(props: Props) {
       <Suspense fallback={null}>
         <Loaded {...props} />
       </Suspense>
-      <OrbitControls makeDefault enablePan={false} autoRotate={!touched} autoRotateSpeed={1.4} enableDamping />
+      <OrbitControls makeDefault enablePan={false} autoRotate={!touched && props.active === "main" && props.layers.length === 1} autoRotateSpeed={1.4} enableDamping />
     </Canvas>
   );
 }

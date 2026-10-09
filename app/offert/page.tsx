@@ -7,6 +7,8 @@ import { useCart } from "@/components/CartProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
+import { DeliveryNote } from "@/components/DeliveryNote";
+import { estimate, fmtDay } from "@/lib/delivery";
 import { designSummary } from "@/lib/marking";
 import { priceLine, sek } from "@/lib/pricing";
 
@@ -20,6 +22,9 @@ export default function OfferPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [quoteRef, setQuoteRef] = useState("");
+  const [sharing, setSharing] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const rows = useMemo(
     () =>
@@ -34,6 +39,9 @@ export default function OfferPage() {
   );
 
   const total = rows.reduce((sum, r) => sum + r.line.lineTotal, 0);
+  const deliveries = rows.map((r) => estimate(r.family, r.item.design).date);
+  const lastDelivery = deliveries.reduce((a, b) => (b > a ? b : a), deliveries[0] ?? "");
+  const lateCount = cart.eventDate ? deliveries.filter((d) => d > cart.eventDate).length : 0;
 
   const createQuote = async () => {
     if (!company.trim()) {
@@ -48,6 +56,7 @@ export default function OfferPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           host: cart.host,
+          eventDate: cart.eventDate || undefined,
           brand: cart.brand,
           company: company.trim(),
           phone: phone.trim(),
@@ -74,6 +83,29 @@ export default function OfferPage() {
       setError(err instanceof Error ? err.message : "Kunde inte skapa offerten.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const shareQuote = async () => {
+    if (!quoteRef) return;
+    setSharing(true);
+    setError("");
+    try {
+      let url = shareUrl;
+      if (!url) {
+        const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ref: quoteRef }) });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error || "Kunde inte skapa länken.");
+        url = `${window.location.origin}${j.path}`;
+        setShareUrl(url);
+      }
+      await navigator.clipboard?.writeText(url).catch(() => {});
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte skapa länken.");
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -124,6 +156,27 @@ export default function OfferPage() {
           </div>
         ) : (
           <>
+            <div className="offer-date">
+              <label>
+                <span>När behöver ni produkterna?</span>
+                <input type="date" value={cart.eventDate} min={new Date().toISOString().slice(0, 10)} onChange={(e) => cart.setEventDate(e.target.value)} />
+              </label>
+              {cart.eventDate ? (
+                lateCount ? (
+                  <p className="delivery late">
+                    <span className="delivery-dot" aria-hidden /> {lateCount} {lateCount === 1 ? "produkt hinner" : "produkter hinner"} inte till {fmtDay(cart.eventDate)} – se förslagen nedan.
+                  </p>
+                ) : (
+                  <p className="delivery ok">
+                    <span className="delivery-dot" aria-hidden /> Allt hinner till {fmtDay(cart.eventDate)}. Sista leverans ca {fmtDay(lastDelivery)}.
+                  </p>
+                )
+              ) : (
+                <p className="delivery">
+                  <span className="delivery-dot" aria-hidden /> Allt levereras senast ca {fmtDay(lastDelivery)} om ni beställer i dag.
+                </p>
+              )}
+            </div>
             <ul className="offer-list">
               {rows.map(({ line, image, item, family }) => (
                 <li key={line.productId} className="offer-row">
@@ -137,6 +190,7 @@ export default function OfferPage() {
                     </span>
                     {item.design ? <span>{designSummary(family, item.design)}</span> : null}
                     <small>{sek(line.unitInclPrint)}/st inkl. tryck · tryckstart {sek(line.setup)}</small>
+                    <DeliveryNote family={family} design={item.design} needBy={cart.eventDate} />
                   </div>
                   <div className="offer-qty">
                     <div className="stepper" role="group" aria-label={`Antal ${line.name}`}>
@@ -187,9 +241,22 @@ export default function OfferPage() {
               {created ? (
                 <>
                   <p className="offer-created">Offerten är skapad och nedladdad. Skicka den till kunden när du är redo.</p>
-                  <button type="button" className="offer-send" onClick={() => void sendQuote()} disabled={sending}>
-                    {sending ? "Skickar…" : "Skicka offert"}
-                  </button>
+                  <div className="offer-actions">
+                    <button type="button" className="offer-send" onClick={() => void sendQuote()} disabled={sending}>
+                      {sending ? "Skickar…" : "Skicka offert"}
+                    </button>
+                    <button type="button" className="offer-share" onClick={() => void shareQuote()} disabled={sharing}>
+                      {sharing ? "Skapar länk…" : shareUrl ? (copied ? "Länk kopierad ✓" : "Kopiera länken igen") : "Dela med teamet"}
+                    </button>
+                  </div>
+                  {shareUrl ? (
+                    <p className="offer-share-link">
+                      Kollegorna kan kommentera och godkänna rad för rad:{" "}
+                      <a href={shareUrl} target="_blank" rel="noreferrer">
+                        {shareUrl.replace(/^https?:\/\//, "")}
+                      </a>
+                    </p>
+                  ) : null}
                 </>
               ) : null}
             </form>

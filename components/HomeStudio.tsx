@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BrandConfirm } from "@/components/BrandConfirm";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -24,6 +25,7 @@ export function HomeStudio() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [picking, setPicking] = useState(false);
+  const [confirmHost, setConfirmHost] = useState<string | null>(null);
   const reset = useRef(false);
 
   useEffect(() => {
@@ -55,8 +57,7 @@ export function HomeStudio() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa adressen.");
-      cart.setBrand(json.host ?? host, json.name ?? host, json.color);
-      setPicking(true);
+      setConfirmHost(json.host ?? host);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa adressen.");
     } finally {
@@ -85,8 +86,7 @@ export function HomeStudio() {
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa brandbooken.");
       setReading({ complete: true });
       await new Promise((r) => setTimeout(r, 700));
-      cart.setBrand(json.host, json.name, json.color ?? undefined);
-      setPicking(true);
+      setConfirmHost(json.host);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa brandbooken.");
     } finally {
@@ -201,7 +201,7 @@ export function HomeStudio() {
             <button type="button" className="picker-close" onClick={() => setPicking(false)} aria-label="Stäng">
               ×
             </button>
-            <p className="kicker">Steg 2 av 3</p>
+            <p className="kicker">Steg 3 av 4</p>
             <h2 id="picker-title">Vad ska {cart.brand || "ni"} planera?</h2>
             <p className="lede">Välj tillfälle så bygger vi miljön och tar fram produkterna som passar – med er logga.</p>
             <div className="picker-grid">
@@ -215,6 +215,18 @@ export function HomeStudio() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {confirmHost ? (
+        <BrandConfirm
+          host={confirmHost}
+          onClose={() => setConfirmHost(null)}
+          onDone={(b) => {
+            cart.setBrand(b.host, b.name, b.color);
+            setConfirmHost(null);
+            setPicking(true);
+          }}
+        />
       ) : null}
 
       {reading ? (

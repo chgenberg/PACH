@@ -15,6 +15,16 @@ export type InvoiceState = {
   kost: Record<string, number>;
 };
 
+export type ShareComment = { id: string; at: string; name: string; text: string; productId?: string };
+
+/** Delbar länk där kundens team kommenterar och godkänner rad för rad. */
+export type ShareState = {
+  token: string;
+  createdAt: string;
+  comments: ShareComment[];
+  approvals: Record<string, { name: string; at: string }>;
+};
+
 export type StoredQuote = {
   ref: string;
   createdAt: string;
@@ -22,9 +32,12 @@ export type StoredQuote = {
   phone: string;
   host?: string;
   brand?: string;
+  /** När kunden behöver produkterna (ISO-datum). */
+  eventDate?: string;
   status: QuoteStatus;
   lines: StoredLine[];
   invoice: InvoiceState;
+  share?: ShareState;
   demo?: boolean;
 };
 

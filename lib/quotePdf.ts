@@ -5,6 +5,8 @@ import sharp from "sharp";
 import { readImageUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
+import { estimate, fmtDay } from "@/lib/delivery";
+import { isBrandbookHost } from "@/lib/host";
 import { designSummary, sanitizeDesign } from "@/lib/marking";
 import { priceQuote, sek, type QuoteLine } from "@/lib/pricing";
 import { newRef } from "@/lib/quotes";
@@ -17,6 +19,7 @@ export type QuoteInput = {
   lines: { productId: string; qty: number; image?: string; color?: string; design?: unknown }[];
   reference?: string;
   createdAt?: string;
+  eventDate?: string;
 };
 
 const INK = "#111111";
@@ -53,6 +56,13 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
       return [l.productId, family && design ? designSummary(family, design) : null] as const;
     }),
   );
+  const deliveryById = new Map(
+    input.lines.map((l) => {
+      const family = familyById(l.productId);
+      return [l.productId, family ? estimate(family, sanitizeDesign(family, l.design)).date : ""] as const;
+    }),
+  );
+  const lastDelivery = [...deliveryById.values()].reduce((a, b) => (b > a ? b : a), "");
   const thumbs = await Promise.all(input.lines.map((l) => thumbBuffer(l)));
   const thumbById = new Map<string, Buffer | null>();
   input.lines.forEach((l, i) => thumbById.set(l.productId, thumbs[i]));
@@ -103,7 +113,9 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
   const info: [string, string][] = [
     ["Kund", input.company || input.brand || "—"],
     ...(input.phone ? ([["Telefon", input.phone]] as [string, string][]) : []),
-    ...(input.host ? ([["Webb", input.host]] as [string, string][]) : []),
+    ...(input.host && !isBrandbookHost(input.host) ? ([["Webb", input.host]] as [string, string][]) : []),
+    ...(input.eventDate ? ([["Behövs senast", fmtDay(input.eventDate)]] as [string, string][]) : []),
+    ...(lastDelivery ? ([["Beräknad leverans", `senast ca ${fmtDay(lastDelivery)} vid beställning i dag`]] as [string, string][]) : []),
   ];
   doc.font("Helvetica").fontSize(10);
   for (const [k, v] of info) {
@@ -156,7 +168,7 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
       .fillColor(MUTE)
       .text(`${line.spec} · ${colorById.get(line.productId)}`, cols.product, y + 17, { width: cols.qty - cols.product - 10, lineBreak: false, ellipsis: true })
       .text(designById.get(line.productId) ?? "Tryck med er logga", cols.product, y + 28, { width: cols.qty - cols.product - 10, lineBreak: false, ellipsis: true })
-      .text(`Startkostnad märkning ${sek(line.setup)}`, cols.product, y + 39, { width: cols.qty - cols.product - 10, lineBreak: false });
+      .text(`Startkostnad märkning ${sek(line.setup)}${deliveryById.get(line.productId) ? ` · leverans ca ${fmtDay(deliveryById.get(line.productId)!)}` : ""}`, cols.product, y + 39, { width: cols.qty - cols.product - 10, lineBreak: false, ellipsis: true });
 
     doc.font("Helvetica").fontSize(10).fillColor(INK);
     doc.text(`${line.qty} st`, cols.qty, y + 12, { width: 60, align: "right" });

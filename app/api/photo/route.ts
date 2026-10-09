@@ -6,6 +6,7 @@ import { loadBrand, logoPrefersDark } from "@/lib/brandLogo";
 import { familyById } from "@/lib/catalog";
 import { eventOf } from "@/lib/events";
 import { normalizeHost } from "@/lib/host";
+import { brandRev } from "@/lib/siteAnalysis";
 import { brandLifestyle, errorMessage, hasOpenAIKey } from "@/lib/openai";
 
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   if (!body.host) return NextResponse.json({ error: "Ange en webbadress" }, { status: 400 });
 
   try {
-    const id = cacheKey("photo-v3", normalizeHost(body.host), ev.slug, String(body.index));
+    const id = cacheKey("photo-v3", normalizeHost(body.host), String(await brandRev(normalizeHost(body.host))), ev.slug, String(body.index));
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
 

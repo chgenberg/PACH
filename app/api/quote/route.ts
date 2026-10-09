@@ -27,7 +27,8 @@ export async function POST(req: Request) {
       const family = familyById(l.productId);
       return { productId: l.productId, qty: l.qty, image: l.image, color: l.color, design: family ? sanitizeDesign(family, l.design) : undefined };
     });
-    const saved = await createQuote({ company: body.company.trim(), phone: body.phone ?? "", brand: body.brand, host: body.host, lines });
+    const eventDate = typeof body.eventDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) ? body.eventDate : undefined;
+    const saved = await createQuote({ company: body.company.trim(), phone: body.phone ?? "", brand: body.brand, host: body.host, eventDate, lines });
     const pdf = await quotePdf({ ...saved, reference: saved.ref });
     const filename = `Offert-${saved.ref}.pdf`;
     return new Response(new Uint8Array(pdf), {

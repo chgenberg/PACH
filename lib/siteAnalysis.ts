@@ -35,6 +35,8 @@ export type SiteAnalysis = {
   palette?: string[];
   fonts?: { heading: string; body: string };
   rules?: string[];
+  /** Bumped when the customer edits the brand; part of every image cache key. */
+  rev?: number;
 };
 
 const VERSION = "a2";
@@ -296,10 +298,15 @@ export async function readAnalysis(host: string): Promise<SiteAnalysis | null> {
     .catch(() => null);
 }
 
+/** Revision of the customer's brand, so edited brands never reuse images made with the old logo or colour. */
+export async function brandRev(host: string): Promise<number> {
+  return (await readAnalysis(host))?.rev ?? 0;
+}
+
 /** Store an analysis made elsewhere (e.g. from a brand book) with its logo variants. */
-export async function storeAnalysis(a: Omit<SiteAnalysis, "logoLight" | "logoDark">, logo: { light: Buffer; dark: Buffer } | null): Promise<SiteAnalysis> {
+export async function storeAnalysis(a: Omit<SiteAnalysis, "logoLight" | "logoDark"> & Partial<Pick<SiteAnalysis, "logoLight" | "logoDark">>, logo: { light: Buffer; dark: Buffer } | null): Promise<SiteAnalysis> {
   await mkdir(DIR, { recursive: true });
-  const out: SiteAnalysis = { ...a, logoLight: null, logoDark: null };
+  const out: SiteAnalysis = { ...a, logoLight: a.logoLight ?? null, logoDark: a.logoDark ?? null };
   if (logo) {
     out.logoLight = file(a.host, "logo-light.png");
     out.logoDark = file(a.host, "logo-dark.png");

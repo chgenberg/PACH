@@ -175,3 +175,21 @@ export async function buildLogoArt(src: string | null, d: Pick<LogoDesign, "meth
   }
   return { canvas: out, aspect: out.width / out.height };
 }
+
+/** Name print preview: the first name in bold capitals, in a colour that reads on the product. */
+export function buildNameArt(name: string, productColor: string): LogoArt {
+  const text = (name.trim() || "NAMN").toUpperCase().slice(0, 30);
+  const c = document.createElement("canvas");
+  const ctx = c.getContext("2d")!;
+  const font = "800 180px Nunito, Arial, sans-serif";
+  ctx.font = font;
+  const w = Math.ceil(ctx.measureText(text).width) + 40;
+  c.width = Math.max(200, w);
+  c.height = 230;
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = isDark(productColor) ? "#ffffff" : "#111111";
+  ctx.fillText(text, c.width / 2, c.height / 2 + 8);
+  return { canvas: c, aspect: c.width / c.height };
+}

@@ -25,7 +25,18 @@ export type LogoDesign = {
   sizeCm: number;
   /** Egen logga (URL eller data-URL); saknas = företagets logga. */
   logo?: string;
+  /** Fler tryckpositioner på samma produkt, var och en med egen metod, placering och storlek. */
+  extra?: Placement[];
+  /** Personalisering: ett namn per plagg, tryckt på en egen position. */
+  names?: Names;
 };
+
+export type Placement = Omit<LogoDesign, "extra" | "names">;
+export type Names = { list: string[]; zone: string; sizeCm: number; point?: [number, number, number]; normal?: [number, number, number] };
+
+/** Namntryck per styck och en engångskostnad för datahantering. */
+export const NAME_UNIT = 29;
+export const NAME_SETUP = 250;
 
 type MethodInfo = { label: string; blurb: string; setupPerColor: number; unitPerColor: number; fixedColors?: number; maxColors: number };
 
@@ -47,15 +58,21 @@ export function colorsOf(d: Pick<LogoDesign, "method" | "colors">) {
   return info.fixedColors ?? Math.min(info.maxColors, Math.max(1, Math.round(d.colors)));
 }
 
-export function markingPrice(d: LogoDesign, qty: number) {
+function placementPrice(d: Placement, qty: number) {
   const info = METHOD_INFO[d.method];
-  const colors = colorsOf(d);
   // Digitaltryck prissätts som en färgkanal oavsett motiv; brodyr blir dyrare över 8 cm.
-  const channels = d.method === "digitaltryck" ? 1 : colors;
+  const channels = d.method === "digitaltryck" ? 1 : colorsOf(d);
   const sizeFactor = d.method === "brodyr" && d.sizeCm > 8 ? 1.4 : 1;
+  return { perUnit: Math.round(info.unitPerColor * channels * tier(qty) * sizeFactor), setup: info.setupPerColor * channels };
+}
+
+/** All print positions plus names; each position has its own setup. */
+export function markingPrice(d: LogoDesign, qty: number) {
+  const parts = [d, ...(d.extra ?? [])].map((p) => placementPrice(p, qty));
+  const names = d.names?.list.length ? { perUnit: NAME_UNIT, setup: NAME_SETUP } : { perUnit: 0, setup: 0 };
   return {
-    perUnit: Math.round(info.unitPerColor * channels * tier(qty) * sizeFactor),
-    setup: info.setupPerColor * channels,
+    perUnit: parts.reduce((s, p) => s + p.perUnit, 0) + names.perUnit,
+    setup: parts.reduce((s, p) => s + p.setup, 0) + names.setup,
   };
 }
 
@@ -141,19 +158,26 @@ export function defaultDesign(f: Family): LogoDesign {
   return { method, colors: METHOD_INFO[method].fixedColors ?? 1, shape: "original", zone: zonesFor(f)[0].id, sizeCm: Math.max(2, Math.round(sizeCmFor(f) * 0.2)), logo: undefined };
 }
 
-export function designSummary(f: Family, d: LogoDesign) {
-  const zone = d.zone === "egen" ? "Egen placering" : (zonesFor(f).find((z) => z.id === d.zone)?.label ?? d.zone);
+const zoneLabel = (f: Family, id: string) => (id === "egen" ? "Egen placering" : (zonesFor(f).find((z) => z.id === id)?.label ?? id));
+
+function placementSummary(f: Family, d: Placement) {
   const colors = d.method === "digitaltryck" ? "fyrfärg" : d.method === "gravyr" ? "ton-i-ton" : `${colorsOf(d)} ${colorsOf(d) === 1 ? "färg" : "färger"}`;
-  return [METHOD_INFO[d.method].label, colors, zone, d.shape === "original" ? null : SHAPE_LABEL[d.shape], `${d.sizeCm} cm`].filter(Boolean).join(" · ");
+  return [METHOD_INFO[d.method].label, colors, zoneLabel(f, d.zone), d.shape === "original" ? null : SHAPE_LABEL[d.shape], `${d.sizeCm} cm`].filter(Boolean).join(" · ");
 }
 
-/** Server-side guard: keep only known values from a client-sent design. */
-export function sanitizeDesign(f: Family, raw: unknown): LogoDesign | undefined {
+export function designSummary(f: Family, d: LogoDesign) {
+  const parts = [placementSummary(f, d), ...(d.extra ?? []).map((p) => `+ ${placementSummary(f, p)}`)];
+  if (d.names?.list.length) parts.push(`+ namn på ${d.names.list.length} st (${zoneLabel(f, d.names.zone)})`);
+  return parts.join(" · ");
+}
+
+const vec = (v: unknown) => (Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? (v as [number, number, number]) : undefined);
+
+function sanitizePlacement(f: Family, raw: unknown): Placement | undefined {
   if (!raw || typeof raw !== "object") return undefined;
   const d = raw as Partial<LogoDesign>;
   const method = (METHODS as readonly string[]).includes(d.method as string) && methodsFor(f).includes(d.method as Method) ? (d.method as Method) : null;
   if (!method) return undefined;
-  const vec = (v: unknown) => (Array.isArray(v) && v.length === 3 && v.every((n) => typeof n === "number" && Number.isFinite(n)) ? (v as [number, number, number]) : undefined);
   return {
     method,
     colors: colorsOf({ method, colors: Number(d.colors) || 1 }),
@@ -163,4 +187,16 @@ export function sanitizeDesign(f: Family, raw: unknown): LogoDesign | undefined 
     normal: vec(d.normal),
     sizeCm: Math.min(maxSizeCm(f), Math.max(2, Math.round(Number(d.sizeCm) || 6))),
   };
+}
+
+/** Server-side guard: keep only known values from a client-sent design. */
+export function sanitizeDesign(f: Family, raw: unknown): LogoDesign | undefined {
+  const main = sanitizePlacement(f, raw);
+  if (!main) return undefined;
+  const d = raw as Partial<LogoDesign>;
+  const extra = (Array.isArray(d.extra) ? d.extra : []).slice(0, 3).map((p) => sanitizePlacement(f, p)).filter((p): p is Placement => Boolean(p));
+  const n = d.names;
+  const list = n && Array.isArray(n.list) ? n.list.map((s) => String(s).trim().slice(0, 30)).filter(Boolean).slice(0, 2000) : [];
+  const names = list.length && n ? { list, zone: String(n.zone ?? "rygg").slice(0, 20), sizeCm: Math.min(maxSizeCm(f), Math.max(2, Math.round(Number(n.sizeCm) || 8))), point: vec(n.point), normal: vec(n.normal) } : undefined;
+  return { ...main, extra: extra.length ? extra : undefined, names };
 }

@@ -122,6 +122,7 @@ export default function QuotesPage() {
                         {l.qty} st · {colorName(stored?.color ?? BASE_COLOR)} · {sek(l.unitInclPrint)}/st
                         {stored?.design && familyById(l.productId) ? ` · ${designSummary(familyById(l.productId)!, stored.design)}` : ""}
                       </small>
+                      {selected.share?.approvals[l.productId] ? <small className="mini-ok">✓ Godkänd av {selected.share.approvals[l.productId].name}</small> : null}
                     </span>
                     <b>{sek(l.lineTotal)}</b>
                   </li>
@@ -132,6 +133,30 @@ export default function QuotesPage() {
               <span>Totalt exkl. moms</span>
               <strong>{sek(selected.total)}</strong>
             </div>
+            {selected.share ? (
+              <div className="drawer-block">
+                <p className="drawer-label">
+                  Teamgranskning · {Object.keys(selected.share.approvals).length} av {selected.lines.length} godkända
+                </p>
+                {selected.share.comments.length ? (
+                  <ul className="mini-comments">
+                    {selected.share.comments.map((c) => (
+                      <li key={c.id}>
+                        <b>{c.name}</b>
+                        {c.productId ? ` om ${familyById(c.productId)?.name ?? c.productId}` : ""}: {c.text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="drawer-note">Inga kommentarer än.</p>
+                )}
+                <p className="drawer-note">
+                  <a href={`/o/${selected.share.token}`} target="_blank" rel="noreferrer">
+                    Öppna granskningslänken
+                  </a>
+                </p>
+              </div>
+            ) : null}
             <div className="drawer-block">
               <p className="drawer-label">Status</p>
               <div className="seg">

@@ -5,6 +5,7 @@ import { cacheKey, cachedUrl, storeImage } from "@/lib/brandCache";
 import { loadBrand } from "@/lib/brandLogo";
 import { eventOf } from "@/lib/events";
 import { normalizeHost } from "@/lib/host";
+import { brandRev } from "@/lib/siteAnalysis";
 import { errorMessage, hasOpenAIKey } from "@/lib/openai";
 import { renderScene } from "@/lib/sceneDirector";
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
   if (!body.host) return NextResponse.json({ error: "Ange en webbadress" }, { status: 400 });
 
   try {
-    const id = cacheKey("scene-v3", normalizeHost(body.host), ev.slug);
+    const id = cacheKey("scene-v3", normalizeHost(body.host), String(await brandRev(normalizeHost(body.host))), ev.slug);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
 

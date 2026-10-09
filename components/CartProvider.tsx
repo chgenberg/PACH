@@ -19,6 +19,9 @@ type CartState = {
   host: string;
   brand: string;
   brandColor: string;
+  /** När kunden behöver produkterna (ISO-datum). */
+  eventDate: string;
+  setEventDate: (d: string) => void;
   setBrand: (host: string, brand: string, color?: string) => void;
   add: (productId: string, image?: string) => void;
   save: (productId: string, line: Omit<CartItem, "productId">) => void;
@@ -38,13 +41,14 @@ const STORAGE_KEY = "pach.cart.v1";
 
 const CartContext = createContext<CartState | null>(null);
 
-type Persisted = { items: CartItem[]; host: string; brand: string; brandColor?: string };
+type Persisted = { items: CartItem[]; host: string; brand: string; brandColor?: string; eventDate?: string };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [host, setHost] = useState("");
   const [brand, setBrandName] = useState("");
   const [brandColor, setBrandColor] = useState("");
+  const [eventDate, setEventDate] = useState("");
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -56,6 +60,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setHost(p.host ?? "");
         setBrandName(p.brand ?? "");
         setBrandColor(p.brandColor ?? "");
+        setEventDate(p.eventDate ?? "");
       }
     } catch {
       /* ignore */
@@ -66,11 +71,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, host, brand, brandColor } satisfies Persisted));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ items, host, brand, brandColor, eventDate } satisfies Persisted));
     } catch {
       /* ignore */
     }
-  }, [items, host, brand, brandColor, ready]);
+  }, [items, host, brand, brandColor, eventDate, ready]);
 
   const add = useCallback((productId: string, image?: string) => {
     setItems((prev) => (prev.some((i) => i.productId === productId) ? prev : [...prev, { productId, qty: 50, image }]));
@@ -100,6 +105,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setHost("");
     setBrandName("");
     setBrandColor("");
+    setEventDate("");
   }, []);
 
   const setBrand = useCallback((h: string, b: string, color?: string) => {
@@ -114,6 +120,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       host,
       brand,
       brandColor,
+      eventDate,
+      setEventDate,
       setBrand,
       add,
       save,
@@ -127,7 +135,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       count: items.length,
       ready,
     }),
-    [items, host, brand, brandColor, ready, setBrand, add, save, remove, setQty, setImage, clear],
+    [items, host, brand, brandColor, eventDate, ready, setBrand, add, save, remove, setQty, setImage, clear],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

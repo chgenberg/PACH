@@ -6,6 +6,7 @@ import { type CartItem, useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex, suggestions } from "@/lib/colors";
 import { LogoCustomizer } from "@/components/customizer/LogoCustomizer";
+import { DeliveryNote } from "@/components/DeliveryNote";
 import { defaultDesign, designSummary, type LogoDesign } from "@/lib/marking";
 import { priceLine, sek } from "@/lib/pricing";
 
@@ -174,6 +175,7 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
           <p className="drawer-note">
             {sek(price.unitInclPrint)}/st inkl. tryck · tryckstart {sek(price.setup)}
           </p>
+          <DeliveryNote family={family} design={design} needBy={cart.eventDate} />
         </div>
 
         <div className="drawer-foot">
@@ -211,9 +213,11 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
           qty={qty}
           brandLogo={cart.host ? `/api/brand-logo?host=${encodeURIComponent(cart.host)}` : null}
           brandColor={cart.brandColor}
+          needBy={cart.eventDate}
           onClose={() => setCustomizing(false)}
           onSave={(r) => {
             setDesign(r.design);
+            if (r.design.names && r.design.names.list.length > qty) setQty(r.design.names.list.length);
             setColor(r.color);
             setPreview(r.preview || null);
             setCustomizing(false);

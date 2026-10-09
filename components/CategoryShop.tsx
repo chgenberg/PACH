@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
+import { Packages } from "@/components/Packages";
 import { ProductDrawer } from "@/components/ProductDrawer";
+import { isEventId } from "@/lib/eventAgent";
 import { hostOk, isBrandbookHost, normalizeHost } from "@/lib/host";
 import { PRINT_PER_UNIT, sek } from "@/lib/pricing";
 
@@ -70,6 +72,22 @@ export function CategoryShop({
   const [lifestyle, setLifestyle] = useState<(string | null)[]>([]);
   const [open, setOpen] = useState<string | null>(null);
   const brandedFor = useRef("");
+  const [spots, setSpots] = useState<{ for: string; list: { productId: string; x: number; y: number }[] }>({ for: "", list: [] });
+  const shownScene = sceneSrc ?? scene;
+
+  useEffect(() => {
+    if (!isEventId(slug)) return;
+    let alive = true;
+    fetch("/api/hotspots", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: slug, image: shownScene }) })
+      .then((r) => r.json())
+      .then((j) => {
+        if (alive && Array.isArray(j.spots)) setSpots({ for: shownScene, list: j.spots });
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [slug, shownScene]);
 
   const brandAll = useCallback(
     async (host: string, company: string) => {
@@ -189,9 +207,33 @@ export function CategoryShop({
         </div>
         <div className="evhero-scene">
           <Image key={sceneSrc ?? scene} src={sceneSrc ?? scene} alt={`${name} med ${sceneSrc ? cart.brand : "din"} logga`} width={1536} height={1024} sizes="(max-width: 860px) 100vw, 55vw" unoptimized={Boolean(sceneSrc)} priority />
+          {!run && spots.for === (sceneSrc ?? scene)
+            ? spots.list.map((s, i) => {
+                const item = items.find((it) => it.id === s.productId);
+                if (!item) return null;
+                return (
+                  <button
+                    key={s.productId}
+                    type="button"
+                    className={`hotspot${cart.has(s.productId) ? " is-in" : ""}${s.y < 0.22 ? " is-high" : ""}`}
+                    style={{ left: `${s.x * 100}%`, top: `${s.y * 100}%`, animationDelay: `${i * 0.25}s` }}
+                    onClick={() => setOpen(s.productId)}
+                    aria-label={`${item.name} – visa produkten`}
+                  >
+                    <span className="hotspot-label">
+                      {item.name}
+                      <small>från {sek(item.from)}</small>
+                    </span>
+                  </button>
+                );
+              })
+            : null}
         </div>
       </section>
 
+      {isEventId(slug) ? <Packages event={slug} images={images} /> : null}
+
+      <h2 className="goods-title">Alla produkter</h2>
       <ul className="goods">
         {items.map((item, index) => {
           const line = cart.itemOf(item.id);

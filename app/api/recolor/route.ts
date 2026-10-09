@@ -5,6 +5,7 @@ import { cacheKey, cachedUrl, readImage, storeImage } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
 import { normalizeHost } from "@/lib/host";
+import { brandRev } from "@/lib/siteAnalysis";
 import { errorMessage, hasOpenAIKey, recolorProduct } from "@/lib/openai";
 import { stockColorFile } from "@/lib/stockColors";
 
@@ -20,7 +21,8 @@ export async function POST(req: Request) {
   const hex = body.hex.toUpperCase();
   const host = body.host ? normalizeHost(body.host) : "";
   // The product photo with the logo (or the plain catalogue photo) is the black original.
-  const brandedId = host ? cacheKey("product-v3", host, family.id) : "";
+  const rev = host ? String(await brandRev(host)) : "0";
+  const brandedId = host ? cacheKey("product-v3", host, rev, family.id) : "";
   const original = brandedId ? await readImage(brandedId) : null;
   if (hex === BASE_COLOR) return NextResponse.json({ image: original ? (await cachedUrl(brandedId))! : family.image });
   if (!original) {
@@ -29,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const id = cacheKey("recolor-v3", host, family.id, hex);
+    const id = cacheKey("recolor-v3", host, rev, family.id, hex);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
     if (!hasOpenAIKey()) return NextResponse.json({ error: "OpenAI-nyckel saknas" }, { status: 503 });
