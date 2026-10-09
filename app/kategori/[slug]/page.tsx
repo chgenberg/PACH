@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CategoryShop, type ShopItem } from "@/components/CategoryShop";
 import { familiesIn, fromPrice } from "@/lib/catalog";
 import { SHOPS, shopOf } from "@/lib/shop";
 
@@ -16,7 +17,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
   const shop = shopOf((await params).slug);
   if (!shop) notFound();
-  const items = familiesIn(shop.slug);
+  const items: ShopItem[] = familiesIn(shop.slug).map((item) => ({
+    id: item.id,
+    name: item.name,
+    subcategory: item.subcategory,
+    image: item.image,
+    from: item.variants[0] ? Math.round(fromPrice(item)) : 0,
+    colors: item.variants.slice(0, 3).map((v) => v.colorHex),
+  }));
 
   return (
     <div className="shop">
@@ -28,28 +36,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           Tillbaka
         </Link>
       </header>
-      <div className="cat">
-        <p className="kicker">{items.length} produkter</p>
-        <h1>{shop.name}</h1>
-        <p className="lede">{shop.hint}</p>
-        <ul className="goods">
-          {items.map((item) => (
-            <li key={item.id} className="good">
-              <div className="good-photo" style={{ background: shop.tone }}>
-                <Image src={item.image} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" />
-                <span className="good-colors">
-                  {item.variants.slice(0, 2).map((variant) => (
-                    <i key={variant.sku} style={{ background: variant.colorHex }} title={variant.colorName} />
-                  ))}
-                </span>
-              </div>
-              <strong>{item.name}</strong>
-              <span>{item.subcategory}</span>
-              <em>från {item.variants[0] ? Math.round(fromPrice(item)) : 0} kr</em>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <CategoryShop slug={shop.slug} name={shop.name} hint={shop.hint} tone={shop.tone} items={items} />
     </div>
   );
 }

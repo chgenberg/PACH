@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
+import { CartProvider } from "@/components/CartProvider";
 import "./globals.css";
 
 const sans = Nunito({
@@ -23,7 +24,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="sv" className={sans.variable}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }
