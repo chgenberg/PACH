@@ -118,7 +118,7 @@ export function LogoCustomizer({
               onPlace={(p) => set({ zone: "egen", point: [p.point.x, p.point.y, p.point.z], normal: [p.normal.x, p.normal.y, p.normal.z] })}
             />
           )}
-          <p className="cz-hint">Dra för att snurra · scrolla för att zooma · klicka på produkten för att placera loggan</p>
+          <p className="cz-hint">Dra loggan för att flytta den · dra produkten för att snurra · scrolla för att zooma</p>
         </div>
 
         <aside className="cz-panel">

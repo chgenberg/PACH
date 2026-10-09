@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   const hex = body.hex.toUpperCase();
   const host = body.host ? normalizeHost(body.host) : "";
   // The product photo with the logo (or the plain catalogue photo) is the black original.
-  const brandedId = host ? cacheKey("product-v1", host, family.id) : "";
+  const brandedId = host ? cacheKey("product-v2", host, family.id) : "";
   const original = brandedId ? await readImage(brandedId) : null;
   if (hex === BASE_COLOR) return NextResponse.json({ image: original ? (await cachedUrl(brandedId))! : family.image });
   if (!original) {
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const id = cacheKey("recolor-v1", host, family.id, hex);
+    const id = cacheKey("recolor-v2", host, family.id, hex);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
     if (!hasOpenAIKey()) return NextResponse.json({ error: "OpenAI-nyckel saknas" }, { status: 503 });

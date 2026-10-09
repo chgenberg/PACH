@@ -1,5 +1,6 @@
 import sharp from "sharp";
 import { readProfile, type Profile } from "@/lib/profile";
+import { analysisLogo, type SiteAnalysis, siteAnalysis } from "@/lib/siteAnalysis";
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
@@ -33,10 +34,15 @@ export async function logoPrefersDark(logo: Buffer): Promise<boolean> {
   }
 }
 
-/** Read the company profile from its website and download its logo. */
-export async function loadBrand(host: string): Promise<{ profile: Profile; logo: Buffer }> {
+/**
+ * Read the company profile and the best logo we can find: the one the site analysis picked from the
+ * site's header (a real wordmark), otherwise the site icon.
+ */
+export async function loadBrand(host: string): Promise<{ profile: Profile; logo: Buffer; analysis: SiteAnalysis | null }> {
   const profile = await readProfile(host);
-  const logo = (await download(profile.logo)) ?? (await download(`https://www.google.com/s2/favicons?domain=${profile.host}&sz=256`));
-  if (!logo) throw new Error("Kunde inte hämta logotypen");
-  return { profile, logo };
+  const icon = (await download(profile.logo)) ?? (await download(`https://www.google.com/s2/favicons?domain=${profile.host}&sz=256`));
+  if (!icon) throw new Error("Kunde inte hämta logotypen");
+  const analysis = await siteAnalysis(profile.host, icon);
+  const logo = (await analysisLogo(analysis)) ?? icon;
+  return { profile, logo, analysis };
 }

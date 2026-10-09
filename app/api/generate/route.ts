@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const id = cacheKey("product-v1", normalizeHost(body.host), family.id);
+    const id = cacheKey("product-v2", normalizeHost(body.host), family.id);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ productId: family.id, name: family.name, image: hit, cached: true });
 

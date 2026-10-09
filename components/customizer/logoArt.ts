@@ -80,12 +80,17 @@ function reduceColors(data: Uint8ClampedArray, n: number, ink: [number, number, 
 function dropWhiteBackground(data: Uint8ClampedArray) {
   let white = 0;
   let total = 0;
+  let clear = 0;
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 10) continue;
+    if (data[i + 3] < 10) {
+      clear++;
+      continue;
+    }
     total++;
     if (data[i] > 240 && data[i + 1] > 240 && data[i + 2] > 240) white++;
   }
-  if (!total || white / total < 0.35) return;
+  // A logo that already has transparency is a white logo, not a white background.
+  if (!total || clear / (data.length / 4) > 0.05 || white / total < 0.35) return;
   for (let i = 0; i < data.length; i += 4) if (data[i] > 236 && data[i + 1] > 236 && data[i + 2] > 236) data[i + 3] = 0;
 }
 
