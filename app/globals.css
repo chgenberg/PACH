@@ -5314,7 +5314,7 @@ a.drawer-save {
 
 .campaign-form {
   display: grid;
-  grid-template-columns: auto 1.4fr 1fr 1fr auto;
+  grid-template-columns: auto minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 10px;
   align-items: end;
   margin-bottom: 18px;
@@ -5387,6 +5387,7 @@ body:has(.drawer-wrap, .cz-wrap, .bc-wrap, .picker) .stylist-fab {
 }
 
 .campaign-form .seg {
-  display: inline-flex;
+  flex-wrap: nowrap;
+  margin-bottom: 0;
   white-space: nowrap;
 }
