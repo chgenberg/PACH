@@ -1,4 +1,5 @@
 import { familyById, fromPrice, type Family } from "@/lib/catalog";
+import { type LogoDesign, markingPrice, sanitizeDesign } from "@/lib/marking";
 
 /**
  * Enkel prismodell "inkl. tryck".
@@ -21,12 +22,13 @@ export type QuoteLine = {
   lineTotal: number; // (à-pris inkl tryck * antal) + tryckstart
 };
 
-export function priceLine(family: Family, qty: number): QuoteLine {
-  const unitProduct = Math.round(fromPrice(family));
-  const printPerUnit = PRINT_PER_UNIT;
-  const unitInclPrint = unitProduct + printPerUnit;
-  const setup = PRINT_SETUP;
+export function priceLine(family: Family, qty: number, design?: LogoDesign): QuoteLine {
   const q = Math.max(1, Math.round(qty));
+  const unitProduct = Math.round(fromPrice(family));
+  const marking = design ? markingPrice(design, q) : { perUnit: PRINT_PER_UNIT, setup: PRINT_SETUP };
+  const printPerUnit = marking.perUnit;
+  const unitInclPrint = unitProduct + printPerUnit;
+  const setup = marking.setup;
   return {
     productId: family.id,
     name: family.name,
@@ -41,12 +43,12 @@ export function priceLine(family: Family, qty: number): QuoteLine {
 }
 
 /** Räkna fram alla rader och totalsumma från katalogen (server-sidan litar aldrig på pris från klienten). */
-export function priceQuote(input: { productId: string; qty: number }[]) {
+export function priceQuote(input: { productId: string; qty: number; design?: unknown }[]) {
   const lines: QuoteLine[] = [];
   for (const item of input) {
     const family = familyById(item.productId);
     if (!family) continue;
-    lines.push(priceLine(family, item.qty));
+    lines.push(priceLine(family, item.qty, sanitizeDesign(family, item.design)));
   }
   const total = lines.reduce((sum, l) => sum + l.lineTotal, 0);
   return { lines, total };

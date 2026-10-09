@@ -1,9 +1,10 @@
+import type { LogoDesign } from "@/lib/marking";
 import type { QuoteLine } from "@/lib/pricing";
 
 export const QUOTE_STATUSES = ["skapad", "skickad", "godkand", "fakturerad"] as const;
 export type QuoteStatus = (typeof QUOTE_STATUSES)[number];
 
-export type StoredLine = { productId: string; qty: number; image?: string; color?: string };
+export type StoredLine = { productId: string; qty: number; image?: string; color?: string; design?: LogoDesign };
 
 export type InvoiceState = {
   /** Z-godkänd: underlaget är kontrollerat och får faktureras. */

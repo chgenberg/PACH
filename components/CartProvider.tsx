@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import type { LogoDesign } from "@/lib/marking";
 
 export type CartItem = {
   productId: string;
@@ -9,6 +10,8 @@ export type CartItem = {
   image?: string;
   /** Vald produktfärg (hex); saknas = katalogfotots svarta original. */
   color?: string;
+  /** Anpassad logga: märkmetod, färger, form, placering och storlek. */
+  design?: LogoDesign;
 };
 
 type CartState = {

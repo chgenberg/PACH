@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { quotePdf, type QuoteInput } from "@/lib/quotePdf";
 import { createQuote } from "@/lib/quotes";
+import { familyById } from "@/lib/catalog";
+import { sanitizeDesign } from "@/lib/marking";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -21,7 +23,10 @@ export async function POST(req: Request) {
   }
 
   try {
-    const lines = body.lines.map((l) => ({ productId: l.productId, qty: l.qty, image: l.image, color: l.color }));
+    const lines = body.lines.map((l) => {
+      const family = familyById(l.productId);
+      return { productId: l.productId, qty: l.qty, image: l.image, color: l.color, design: family ? sanitizeDesign(family, l.design) : undefined };
+    });
     const saved = await createQuote({ company: body.company.trim(), phone: body.phone ?? "", brand: body.brand, host: body.host, lines });
     const pdf = await quotePdf({ ...saved, reference: saved.ref });
     const filename = `Offert-${saved.ref}.pdf`;

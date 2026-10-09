@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { fmtDate, STATUS_LABEL, useQuotes } from "@/components/dashboard/useQuotes";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
+import { designSummary } from "@/lib/marking";
 import { sek } from "@/lib/pricing";
 import { QUOTE_STATUSES, type QuoteStatus } from "@/lib/quoteTypes";
 
@@ -119,6 +120,7 @@ export default function QuotesPage() {
                       <b>{l.name}</b>
                       <small>
                         {l.qty} st · {colorName(stored?.color ?? BASE_COLOR)} · {sek(l.unitInclPrint)}/st
+                        {stored?.design && familyById(l.productId) ? ` · ${designSummary(familyById(l.productId)!, stored.design)}` : ""}
                       </small>
                     </span>
                     <b>{sek(l.lineTotal)}</b>

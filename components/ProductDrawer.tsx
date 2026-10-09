@@ -5,6 +5,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { type CartItem, useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex, suggestions } from "@/lib/colors";
+import { LogoCustomizer } from "@/components/customizer/LogoCustomizer";
+import { defaultDesign, designSummary, type LogoDesign } from "@/lib/marking";
 import { priceLine, sek } from "@/lib/pricing";
 
 export function ProductDrawer({ productId, baseImage, onClose }: { productId: string; baseImage: string; onClose: () => void }) {
@@ -20,6 +22,13 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
   }));
   const [failed, setFailed] = useState("");
   const wanted = useRef(color);
+  const [design, setDesign] = useState<LogoDesign | undefined>(line?.design);
+  const [preview, setPreview] = useState<string | null>(line?.design && line.image ? line.image : null);
+  const [customizing, setCustomizing] = useState(false);
+  const pickColor = (hex: string) => {
+    setColor(hex);
+    setPreview(null);
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -81,9 +90,10 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
   }, [color, shots, ensure, cart.brandColor]);
 
   if (!family) return null;
-  const price = priceLine(family, qty);
+  const price = priceLine(family, qty, design);
   const shot = shots[color];
-  const loading = !shot && !failed;
+  const loading = !preview && !shot && !failed;
+  const photo = preview ?? shot ?? shots[BASE_COLOR];
   const custom = !swatches.some((s) => s.hex.toUpperCase() === color);
 
   return (
@@ -98,13 +108,23 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
         </div>
 
         <div className="drawer-photo">
-          <Image key={shot ?? shots[BASE_COLOR]} src={shot ?? shots[BASE_COLOR]} alt={`${family.name} i ${colorName(color)}`} width={760} height={760} unoptimized={(shot ?? "").startsWith("/api/")} />
+          <Image key={photo} src={photo} alt={`${family.name} i ${colorName(color)}`} width={760} height={760} unoptimized={/^(\/api\/|data:)/.test(photo)} />
           {loading ? (
             <div className="drawer-busy" role="status">
               <span className="loader-spin" aria-hidden />
               <p>Färgar produkten i {colorName(color).toLowerCase()}…</p>
             </div>
           ) : null}
+        </div>
+
+        <div className="drawer-block cz-cta-row">
+          <button type="button" className="cz-cta" onClick={() => setCustomizing(true)}>
+            <svg viewBox="0 0 24 24" aria-hidden>
+              <path d="M12 2l9 5v10l-9 5-9-5V7z M12 22V12 M21 7l-9 5-9-5" />
+            </svg>
+            {design ? "Ändra logga i 3D" : "Anpassa logga i 3D"}
+          </button>
+          {design ? <p className="drawer-note">{designSummary(family, design)}</p> : <p className="drawer-note">Välj form, märkmetod, färger och placering – och snurra produkten.</p>}
         </div>
 
         <p className="drawer-desc">
@@ -125,14 +145,14 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
                 aria-pressed={color === s.hex.toUpperCase()}
                 className="swatch"
                 style={{ background: s.hex }}
-                onClick={() => setColor(s.hex.toUpperCase())}
+                onClick={() => pickColor(s.hex.toUpperCase())}
               />
             ))}
             <label className={`swatch swatch-custom${custom ? " is-on" : ""}`} title="Välj egen färg" style={custom ? { background: color } : undefined}>
               <input
                 type="color"
                 value={color.toLowerCase()}
-                onChange={(e) => isHex(e.target.value) && setColor(e.target.value.toUpperCase())}
+                onChange={(e) => isHex(e.target.value) && pickColor(e.target.value.toUpperCase())}
                 aria-label="Välj egen färg"
               />
             </label>
@@ -174,7 +194,7 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
             className="drawer-save"
             disabled={loading}
             onClick={() => {
-              cart.save(productId, { qty, color: color === BASE_COLOR ? undefined : color, image: shot });
+              cart.save(productId, { qty, color: color === BASE_COLOR ? undefined : color, image: preview ?? shot, design });
               onClose();
             }}
           >
@@ -182,6 +202,24 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
           </button>
         </div>
       </aside>
+
+      {customizing ? (
+        <LogoCustomizer
+          family={family}
+          initial={design ?? defaultDesign(family)}
+          color={color}
+          qty={qty}
+          brandLogo={cart.host ? `/api/brand-logo?host=${encodeURIComponent(cart.host)}` : null}
+          brandColor={cart.brandColor}
+          onClose={() => setCustomizing(false)}
+          onSave={(r) => {
+            setDesign(r.design);
+            setColor(r.color);
+            setPreview(r.preview || null);
+            setCustomizing(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

@@ -7,3 +7,4 @@ out
 .env*.local
 tsconfig.tsbuildinfo
 /.data
+/public/models/raw

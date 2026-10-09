@@ -7,7 +7,8 @@ import { useCart } from "@/components/CartProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
-import { PRINT_PER_UNIT, PRINT_SETUP, priceLine, sek } from "@/lib/pricing";
+import { designSummary } from "@/lib/marking";
+import { priceLine, sek } from "@/lib/pricing";
 
 export default function OfferPage() {
   const cart = useCart();
@@ -26,7 +27,7 @@ export default function OfferPage() {
         .map((item) => {
           const family = familyById(item.productId);
           if (!family) return null;
-          return { line: priceLine(family, item.qty), image: item.image ?? family.image, item };
+          return { line: priceLine(family, item.qty, item.design), image: item.image ?? family.image, item, family };
         })
         .filter((r): r is NonNullable<typeof r> => r !== null),
     [cart.items],
@@ -50,7 +51,7 @@ export default function OfferPage() {
           brand: cart.brand,
           company: company.trim(),
           phone: phone.trim(),
-          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image, color: i.color })),
+          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image, color: i.color, design: i.design })),
         }),
       });
       if (!res.ok) {
@@ -112,7 +113,7 @@ export default function OfferPage() {
           <>
         <p className="kicker">Summering</p>
         <h1>Din offert</h1>
-        <p className="lede">Riktpriser inkl. tryck, exkl. moms. Tryckstart {sek(PRINT_SETUP)} per produkt, tryck {sek(PRINT_PER_UNIT)}/st.</p>
+        <p className="lede">Riktpriser inkl. märkning, exkl. moms. Priset för märkningen beror på metod, antal färger och upplaga – anpassa loggan per produkt.</p>
 
         {rows.length === 0 ? (
           <div className="offer-empty">
@@ -124,16 +125,17 @@ export default function OfferPage() {
         ) : (
           <>
             <ul className="offer-list">
-              {rows.map(({ line, image, item }) => (
+              {rows.map(({ line, image, item, family }) => (
                 <li key={line.productId} className="offer-row">
                   <div className="offer-thumb">
-                    <Image src={image} alt={line.name} width={160} height={160} unoptimized={image.startsWith("data:")} />
+                    <Image src={image} alt={line.name} width={160} height={160} unoptimized={/^(data:|\/api\/)/.test(image)} />
                   </div>
                   <div className="offer-main">
                     <strong>{line.name}</strong>
                     <span>
                       {line.spec} · {colorName(item.color ?? BASE_COLOR)}
                     </span>
+                    {item.design ? <span>{designSummary(family, item.design)}</span> : null}
                     <small>{sek(line.unitInclPrint)}/st inkl. tryck · tryckstart {sek(line.setup)}</small>
                   </div>
                   <div className="offer-qty">

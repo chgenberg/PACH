@@ -5,6 +5,7 @@ import sharp from "sharp";
 import { readImageUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
+import { designSummary, sanitizeDesign } from "@/lib/marking";
 import { priceQuote, sek, type QuoteLine } from "@/lib/pricing";
 import { newRef } from "@/lib/quotes";
 
@@ -13,7 +14,7 @@ export type QuoteInput = {
   phone: string;
   brand?: string;
   host?: string;
-  lines: { productId: string; qty: number; image?: string; color?: string }[];
+  lines: { productId: string; qty: number; image?: string; color?: string; design?: unknown }[];
   reference?: string;
   createdAt?: string;
 };
@@ -44,7 +45,14 @@ async function thumbBuffer(input: { productId: string; image?: string }): Promis
 }
 
 export async function quotePdf(input: QuoteInput): Promise<Buffer> {
-  const { lines, total } = priceQuote(input.lines.map((l) => ({ productId: l.productId, qty: l.qty })));
+  const { lines, total } = priceQuote(input.lines.map((l) => ({ productId: l.productId, qty: l.qty, design: l.design })));
+  const designById = new Map(
+    input.lines.map((l) => {
+      const family = familyById(l.productId);
+      const design = family ? sanitizeDesign(family, l.design) : undefined;
+      return [l.productId, family && design ? designSummary(family, design) : null] as const;
+    }),
+  );
   const thumbs = await Promise.all(input.lines.map((l) => thumbBuffer(l)));
   const thumbById = new Map<string, Buffer | null>();
   input.lines.forEach((l, i) => thumbById.set(l.productId, thumbs[i]));
@@ -120,7 +128,7 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
   doc.moveTo(left, y + 8).lineTo(right, y + 8).strokeColor(LINE).lineWidth(1).stroke();
   y += 16;
 
-  const rowHeight = 46;
+  const rowHeight = 58;
   const ensureSpace = (needed: number) => {
     if (y + needed > doc.page.height - 80) {
       doc.addPage();
@@ -146,8 +154,9 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
       .font("Helvetica")
       .fontSize(8.5)
       .fillColor(MUTE)
-      .text(`${line.spec} · ${colorById.get(line.productId)}`, cols.product, y + 17, { width: cols.qty - cols.product - 10 })
-      .text(`inkl. tryck · tryckstart ${sek(line.setup)}`, cols.product, y + 28, { width: cols.qty - cols.product - 10 });
+      .text(`${line.spec} · ${colorById.get(line.productId)}`, cols.product, y + 17, { width: cols.qty - cols.product - 10, lineBreak: false, ellipsis: true })
+      .text(designById.get(line.productId) ?? "Tryck med er logga", cols.product, y + 28, { width: cols.qty - cols.product - 10, lineBreak: false, ellipsis: true })
+      .text(`Startkostnad märkning ${sek(line.setup)}`, cols.product, y + 39, { width: cols.qty - cols.product - 10, lineBreak: false });
 
     doc.font("Helvetica").fontSize(10).fillColor(INK);
     doc.text(`${line.qty} st`, cols.qty, y + 12, { width: 60, align: "right" });
