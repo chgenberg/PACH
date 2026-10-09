@@ -13,6 +13,9 @@ export default function OfferPage() {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [created, setCreated] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const rows = useMemo(
     () =>
@@ -60,10 +63,28 @@ export default function OfferPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(href);
+      setCreated(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte skapa offerten.");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const sendQuote = async () => {
+    setSending(true);
+    setError("");
+    try {
+      // Mock – inget riktigt utskick förrän Resend är uppkopplat.
+      await fetch("/api/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ company: company.trim(), phone: phone.trim(), host: cart.host }),
+      }).catch(() => null);
+      setSent(true);
+      cart.clear();
+    } finally {
+      setSending(false);
     }
   };
 
@@ -79,6 +100,18 @@ export default function OfferPage() {
       </header>
 
       <div className="cat offer">
+        {sent ? (
+          <div className="offer-thanks">
+            <div className="offer-thanks-mark" aria-hidden>
+              ✓
+            </div>
+            <h1>Tack, din offert är nu skickad.</h1>
+            <Link href="/" className="offer-thanks-link">
+              Tillbaka till förstasidan
+            </Link>
+          </div>
+        ) : (
+          <>
         <p className="kicker">Summering</p>
         <h1>Din offert</h1>
         <p className="lede">Riktpriser inkl. tryck, exkl. moms. Tryckstart {sek(PRINT_SETUP)} per produkt, tryck {sek(PRINT_PER_UNIT)}/st.</p>
@@ -147,9 +180,19 @@ export default function OfferPage() {
               </div>
               {error ? <p className="brandbar-err">{error}</p> : null}
               <button type="submit" className="offer-submit" disabled={busy}>
-                {busy ? "Skapar offert…" : "Skapa offert (PDF)"}
+                {busy ? "Skapar offert…" : created ? "Skapa offert igen (PDF)" : "Skapa offert (PDF)"}
               </button>
+              {created ? (
+                <>
+                  <p className="offer-created">Offerten är skapad och nedladdad. Skicka den till kunden när du är redo.</p>
+                  <button type="button" className="offer-send" onClick={() => void sendQuote()} disabled={sending}>
+                    {sending ? "Skickar…" : "Skicka offert"}
+                  </button>
+                </>
+              ) : null}
             </form>
+          </>
+        )}
           </>
         )}
       </div>

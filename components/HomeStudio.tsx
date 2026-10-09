@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { StudioMark } from "@/components/StudioMark";
 import { familyById, type Family } from "@/lib/catalog";
+import { EVENTS } from "@/lib/events";
 import { hostOk, normalizeHost } from "@/lib/host";
 import type { Profile } from "@/lib/profile";
-import { SHOPS } from "@/lib/shop";
 
 type GenState = { loading?: boolean; image?: string; error?: boolean };
 
@@ -31,7 +31,7 @@ export function HomeStudio() {
   const [gen, setGen] = useState<Record<string, GenState>>({});
 
   const brandTiles = async (host: string) => {
-    const jobs = SHOPS.map((shop) => ({ slug: shop.slug as string, family: familyById(shop.hero) })).filter(
+    const jobs = EVENTS.map((ev) => ({ slug: ev.slug as string, family: familyById(ev.hero) })).filter(
       (j) => j.family !== null,
     ) as { slug: string; family: Family }[];
     setGen(Object.fromEntries(jobs.map((j) => [j.slug, { loading: true }])));
@@ -119,26 +119,26 @@ export function HomeStudio() {
       ) : (
         <p className="shop-lead">
           {profile
-            ? `${profile.name} på produkterna. Välj en kategori.`
-            : "Skriv webbadressen så hamnar logotypen på bilderna."}
+            ? `${profile.name} på produkterna. Välj en händelse.`
+            : "Skriv webbadressen så hamnar logotypen på bilderna. Välj sedan en händelse."}
         </p>
       )}
 
       <div className="mosaic">
-        {SHOPS.map((shop) => {
-          const hero = familyById(shop.hero);
-          const state = gen[shop.slug];
+        {EVENTS.map((ev) => {
+          const hero = familyById(ev.hero);
+          const state = gen[ev.slug];
           const src = state?.image ?? hero?.image;
           return (
-            <Link key={shop.slug} href={`/kategori/${shop.slug}`} className={`tile tile-${shop.slug}${state?.loading ? " loading" : ""}`} style={{ background: shop.tone, color: shop.ink }}>
-              {src ? <Image className="tile-photo" src={src} alt="" width={900} height={900} sizes="(max-width: 860px) 100vw, 45vw" unoptimized={Boolean(state?.image)} priority={shop.slug === "massa-event"} /> : null}
+            <Link key={ev.slug} href={`/handelse/${ev.slug}`} className={`tile tile-${ev.slug}${state?.loading ? " loading" : ""}`} style={{ background: ev.tone, color: ev.ink }}>
+              {src ? <Image className="tile-photo" src={src} alt="" width={900} height={900} sizes="(max-width: 860px) 100vw, 45vw" unoptimized={Boolean(state?.image)} priority={ev.slug === "massa"} /> : null}
               {state?.loading ? <span className="tile-spin" aria-hidden /> : null}
               {profile && !state?.image ? (
                 <span className="tile-mark">
                   <StudioMark profile={profile} />
                 </span>
               ) : null}
-              <span className="tile-name">{shop.name}</span>
+              <span className="tile-name">{ev.name}</span>
             </Link>
           );
         })}
