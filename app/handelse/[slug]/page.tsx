@@ -36,7 +36,11 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           Tillbaka
         </Link>
       </header>
-      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} scene={ev.scene} stages={ev.stages} items={items} />
+      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} scene={ev.scene}
+        stages={ev.stages}
+        photos={ev.photos.map((p) => ({ product: p.product, caption: p.caption }))}
+        items={items}
+      />
     </div>
   );
 }

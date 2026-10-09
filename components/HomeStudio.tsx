@@ -2,74 +2,36 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BrandingLoader } from "@/components/BrandingLoader";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
 import { EVENTS } from "@/lib/events";
 import { hostOk, normalizeHost } from "@/lib/host";
 
-type Run = { name: string; done: number; total: number; complete: boolean };
-
-const STAGES = ["Läser er webbplats…", "Hämtar logga och färger…", "Lägger loggan på produkterna…", "Bygger studiobilden…", "Kvalitetsgranskar bilderna…", "Sista detaljerna…"];
-
-const postImage = (url: string, body: object) =>
-  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-    .then(async (res) => {
-      const json = await res.json();
-      return res.ok && typeof json.image === "string" ? (json.image as string) : null;
-    })
-    .catch(() => null);
+const EXAMPLES = [
+  { label: "Volvo", host: "volvocars.com" },
+  { label: "IKEA", host: "ikea.com" },
+  { label: "Spotify", host: "spotify.com" },
+];
 
 export function HomeStudio() {
   const cart = useCart();
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [run, setRun] = useState<Run | null>(null);
-  const [hero, setHero] = useState<string | null>(null);
-  const [tiles, setTiles] = useState<Record<string, string>>({});
-  const brandedFor = useRef("");
-
-  const brandAll = useCallback(async (host: string, company: string) => {
-    const jobs = EVENTS.flatMap((ev) => {
-      const family = familyById(ev.hero);
-      return family ? [{ slug: ev.slug as string, id: family.id }] : [];
-    });
-    let done = 0;
-    const tick = () => {
-      done += 1;
-      setRun((r) => (r ? { ...r, done } : r));
-    };
-    setRun({ name: company, done: 0, total: jobs.length + 1, complete: false });
-    const found: Record<string, string> = {};
-    let scene: string | null = null;
-    await Promise.all([
-      postImage("/api/scene", { event: "hero", host }).then((img) => {
-        scene = img;
-        tick();
-      }),
-      ...jobs.map(async (j) => {
-        const img = await postImage("/api/generate", { productId: j.id, host });
-        if (img) found[j.slug] = img;
-        tick();
-      }),
-    ]);
-    setRun((r) => (r ? { ...r, complete: true } : r));
-    await new Promise((r) => setTimeout(r, 900));
-    setHero(scene);
-    setTiles(found);
-    setRun(null);
-  }, []);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
-    if (!cart.host || brandedFor.current === cart.host) return;
-    brandedFor.current = cart.host;
-    void brandAll(cart.host, cart.brand || cart.host);
-  }, [cart.host, cart.brand, brandAll]);
+    if (!picking) return;
+    const close = (e: KeyboardEvent) => e.key === "Escape" && setPicking(false);
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [picking]);
 
-  const apply = async () => {
-    const host = normalizeHost(url);
+  const start = async (raw: string) => {
+    const host = normalizeHost(raw);
     if (!hostOk(host)) {
       setError("Skriv en webbadress, till exempel volvo.com");
       return;
@@ -85,15 +47,13 @@ export function HomeStudio() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa adressen.");
       cart.setBrand(json.host ?? host, json.name ?? host);
-      setUrl("");
+      setPicking(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa adressen.");
     } finally {
       setBusy(false);
     }
   };
-
-  const branded = Boolean(cart.host);
 
   return (
     <div className="shop">
@@ -103,61 +63,89 @@ export function HomeStudio() {
         </Link>
       </header>
 
-      <section className="evhero home-hero">
-        <div className="evhero-text">
-          <p className="kicker">Profilprodukter med er logga</p>
-          <h1>{branded && cart.brand ? `Så här ser ${cart.brand} ut på allt.` : "Se er logga på allt – innan ni beställer."}</h1>
-          <p className="lede">Välj tillfälle, ange er webbadress och se hela miljön och varje produkt med er logga. Offert inklusive tryck på några minuter.</p>
-          <ol className="steps">
-            <li>Välj händelse</li>
-            <li>Ange webbadress</li>
-            <li>Välj produkter och få offert</li>
-          </ol>
-          <form
-            className="brandbar"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void apply();
+      <section className="cta">
+        <p className="kicker">Profilprodukter med er logga</p>
+        <h1>Er logga. På allt.</h1>
+        <p className="lede">Skriv in er webbadress så visar vi hela eventet och varje produkt med er logga – innan ni beställer.</p>
+        <form
+          className="cta-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void start(url);
+          }}
+        >
+          <input
+            value={url}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setError("");
             }}
-          >
-            <input
-              value={url}
-              onChange={(e) => {
-                setUrl(e.target.value);
-                setError("");
-              }}
-              placeholder={cart.host || "dittforetag.se"}
-              inputMode="url"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-label="Webbadress"
-            />
-            <button type="submit" disabled={busy || Boolean(run)}>
-              {busy ? "Läser…" : branded ? "Byt logga" : "Visa med min logga"}
-            </button>
-          </form>
-          {error ? <p className="brandbar-err">{error}</p> : branded ? <p className="brandbar-ok">{cart.brand} på alla bilder. Välj en händelse nedan.</p> : null}
-        </div>
-        <div className="evhero-scene">
-          <Image key={hero ?? "hero"} src={hero ?? "/scenes/hero.jpg"} alt="Profilprodukter med logga" width={1536} height={1024} sizes="(max-width: 860px) 100vw, 55vw" unoptimized={Boolean(hero)} priority />
-        </div>
+            placeholder={cart.host || "dittforetag.se"}
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            aria-label="Webbadress"
+          />
+          <button type="submit" disabled={busy}>
+            {busy ? "Hämtar logga…" : "Starta"}
+          </button>
+        </form>
+        {error ? (
+          <p className="brandbar-err">{error}</p>
+        ) : (
+          <p className="cta-try">
+            eller testa:{" "}
+            {EXAMPLES.map((ex) => (
+              <button
+                key={ex.host}
+                type="button"
+                onClick={() => {
+                  setUrl(ex.host);
+                  void start(ex.host);
+                }}
+              >
+                {ex.label}
+              </button>
+            ))}
+          </p>
+        )}
       </section>
 
       <h2 className="mosaic-title">Välj en händelse</h2>
       <div className="mosaic">
         {EVENTS.map((ev) => {
-          const src = tiles[ev.slug] ?? familyById(ev.hero)?.image;
+          const src = familyById(ev.hero)?.image;
           return (
             <Link key={ev.slug} href={`/handelse/${ev.slug}`} className={`tile tile-${ev.slug}`} style={{ background: ev.tone, color: ev.ink }}>
-              {src ? <Image key={src} className="tile-photo" src={src} alt="" width={900} height={900} sizes="(max-width: 860px) 100vw, 45vw" unoptimized={Boolean(tiles[ev.slug])} /> : null}
+              {src ? <Image className="tile-photo" src={src} alt="" width={900} height={900} sizes="(max-width: 860px) 100vw, 45vw" /> : null}
               <span className="tile-name">{ev.name}</span>
             </Link>
           );
         })}
       </div>
 
-      {run ? <BrandingLoader name={run.name} stages={STAGES} done={run.done} total={run.total} complete={run.complete} /> : null}
+      {picking ? (
+        <div className="picker-veil" onClick={() => setPicking(false)}>
+          <div className="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="picker-close" onClick={() => setPicking(false)} aria-label="Stäng">
+              ×
+            </button>
+            <p className="kicker">Steg 2 av 3</p>
+            <h2 id="picker-title">Vad ska {cart.brand || "ni"} planera?</h2>
+            <p className="lede">Välj tillfälle så bygger vi miljön och tar fram produkterna som passar – med er logga.</p>
+            <div className="picker-grid">
+              {EVENTS.map((ev) => (
+                <button key={ev.slug} type="button" className="picker-card" onClick={() => router.push(`/handelse/${ev.slug}`)}>
+                  <Image src={ev.scene} alt="" width={480} height={320} sizes="(max-width: 860px) 45vw, 260px" />
+                  <strong>{ev.name}</strong>
+                  <span>{ev.hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

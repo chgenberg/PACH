@@ -16,6 +16,23 @@ async function download(url: string): Promise<Buffer | null> {
   }
 }
 
+/** Decide if the logo reads better on a dark or light backdrop by sampling its average luminance. */
+export async function logoPrefersDark(logo: Buffer): Promise<boolean> {
+  try {
+    const { data } = await sharp(logo).ensureAlpha().resize(32, 32, { fit: "inside" }).raw().toBuffer({ resolveWithObject: true });
+    let sum = 0;
+    let weight = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3] / 255;
+      sum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) * a;
+      weight += a;
+    }
+    return (weight ? sum / weight : 255) > 150;
+  } catch {
+    return false;
+  }
+}
+
 /** Read the company profile from its website and download its logo. */
 export async function loadBrand(host: string): Promise<{ profile: Profile; logo: Buffer }> {
   const profile = await readProfile(host);

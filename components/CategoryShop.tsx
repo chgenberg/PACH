@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { hostOk, normalizeHost } from "@/lib/host";
@@ -18,6 +18,11 @@ export type ShopItem = {
 };
 
 type Run = { name: string; done: number; total: number; complete: boolean };
+
+export type LifestylePhoto = { product: string; caption: string };
+
+/** Grid positions (before product n) where the two lifestyle photos are mixed in. */
+const PHOTO_SLOTS = [2, 9];
 
 async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
   let i = 0;
@@ -42,6 +47,7 @@ export function CategoryShop({
   tone,
   scene,
   stages,
+  photos = [],
   items,
 }: {
   slug: string;
@@ -50,6 +56,7 @@ export function CategoryShop({
   tone: string;
   scene: string;
   stages: string[];
+  photos?: LifestylePhoto[];
   items: ShopItem[];
 }) {
   const cart = useCart();
@@ -59,6 +66,7 @@ export function CategoryShop({
   const [run, setRun] = useState<Run | null>(null);
   const [images, setImages] = useState<Record<string, string>>({});
   const [sceneSrc, setSceneSrc] = useState<string | null>(null);
+  const [lifestyle, setLifestyle] = useState<(string | null)[]>([]);
   const brandedFor = useRef("");
 
   const brandAll = useCallback(
@@ -68,10 +76,18 @@ export function CategoryShop({
         done += 1;
         setRun((r) => (r ? { ...r, done } : r));
       };
-      setRun({ name: company, done: 0, total: items.length + 1, complete: false });
+      setRun({ name: company, done: 0, total: items.length + photos.length + 1, complete: false });
       const found: Record<string, string> = {};
       let branded: string | null = null;
-      await Promise.all([
+      const [shots] = await Promise.all([
+        Promise.all(
+          photos.map((_, index) =>
+            postImage("/api/photo", { event: slug, index, host }).then((img) => {
+              tick();
+              return img;
+            }),
+          ),
+        ),
         postImage("/api/scene", { event: slug, host }).then((img) => {
           branded = img;
           tick();
@@ -86,10 +102,11 @@ export function CategoryShop({
       await new Promise((r) => setTimeout(r, 900));
       setSceneSrc(branded);
       setImages(found);
+      setLifestyle(shots);
       for (const [id, img] of Object.entries(found)) cart.setImage(id, img);
       setRun(null);
     },
-    [items, slug, cart],
+    [items, photos, slug, cart],
   );
 
   useEffect(() => {
@@ -174,13 +191,32 @@ export function CategoryShop({
       </section>
 
       <ul className="goods">
-        {items.map((item) => {
+        {items.map((item, index) => {
           const brandedImage = images[item.id];
           const src = brandedImage ?? item.image;
           const inCart = cart.has(item.id);
           const qty = cart.qtyOf(item.id);
+          const slot = PHOTO_SLOTS.indexOf(index);
+          const shot = slot >= 0 ? lifestyle[slot] : null;
+          const shotOf = slot >= 0 ? photos[slot] : null;
           return (
-            <li key={item.id} className={`good${inCart ? " picked" : ""}`}>
+            <Fragment key={item.id}>
+              {shot && shotOf ? (
+                <li className="good-life">
+                  <Image src={shot} alt={shotOf.caption} width={1536} height={1024} sizes="(max-width: 860px) 100vw, 50vw" unoptimized />
+                  <div className="good-life-cap">
+                    <span>{shotOf.caption}</span>
+                    {cart.has(shotOf.product) ? (
+                      <em>Tillagd ✓</em>
+                    ) : (
+                      <button type="button" onClick={() => cart.add(shotOf.product, images[shotOf.product])}>
+                        + Lägg till produkten
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ) : null}
+            <li className={`good${inCart ? " picked" : ""}`}>
               <div className="good-photo" style={{ background: tone }}>
                 <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={Boolean(brandedImage)} />
                 {!inCart ? (
@@ -227,6 +263,7 @@ export function CategoryShop({
                 </div>
               ) : null}
             </li>
+            </Fragment>
           );
         })}
       </ul>

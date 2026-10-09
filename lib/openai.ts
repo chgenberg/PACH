@@ -51,6 +51,29 @@ export async function brandProductPhoto(opts: {
   return Buffer.from(b64, "base64");
 }
 
+/** Editorial lifestyle photo of a real-looking person with the product, the company logo printed on it. */
+export async function brandLifestyle(opts: { productPhoto: Buffer; logo: Buffer; productName: string; scene: string; darkLogo?: boolean }): Promise<Buffer> {
+  const ref = await logoReference(opts.logo, Boolean(opts.darkLogo));
+  const prompt = `Hyperrealistic editorial lifestyle campaign photo, shot on a full-frame camera with a 50mm lens, natural light, shallow depth of field. Real skin texture, natural hands and faces, realistic materials and stitching – indistinguishable from a real photo shoot.
+${opts.scene}
+The product is exactly the ${opts.productName} in the first reference image – same shape, colour and material. On it, the logo from the second reference image is printed crisply, sized and placed naturally on its main visible surface and following folds, curvature and light. The logo keeps its exact shapes, letters and proportions – no invented or distorted characters.
+People are fictional and generic, not famous, with anatomically correct hands. No other logos, brands, readable text or signage anywhere in the image.`;
+  const res = await openai().images.edit({
+    model: IMAGE_MODEL,
+    image: [
+      await toFile(opts.productPhoto, "product.png", { type: "image/png" }),
+      await toFile(ref, "logo.png", { type: "image/png" }),
+    ],
+    prompt,
+    size: "1536x1024",
+    quality: IMAGE_QUALITY,
+    output_format: "jpeg",
+  });
+  const b64 = res.data?.[0]?.b64_json;
+  if (!b64) throw new Error("Bildmodellen returnerade ingen bild");
+  return Buffer.from(b64, "base64");
+}
+
 /** Rebrand a neutral "DIN LOGO" scene with the company logo, keeping composition, people and light. */
 export async function brandScene(opts: { scene: Buffer; logo: Buffer; company: string; color?: string }): Promise<Buffer> {
   const ref = await logoReference(opts.logo, false);

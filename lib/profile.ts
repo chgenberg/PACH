@@ -23,6 +23,24 @@ function cleanTitle(raw: string, host: string) {
   return cut && cut.length < 32 ? cut : titleOf(host);
 }
 
+const squash = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** Pick the company name: og:site_name, else the title segment that matches the domain, e.g. "Volvo Cars" from "España | Volvo Cars". */
+function nameOf(html: string, host: string) {
+  const site = html.match(/<meta[^>]+property=["']og:site_name["'][^>]*>/i)?.[0];
+  const siteName = site ? ATTR(site, "content").trim() : "";
+  if (siteName && siteName.length < 32) return siteName;
+  const title = html.match(/<title[^>]*>([^<]+)/i)?.[1]?.trim();
+  if (!title) return "";
+  const label = squash(host.split(".")[0] ?? host);
+  const parts = title.split(/\s+[|–—-]\s+|\s*\|\s*/).map((p) => p.trim()).filter(Boolean);
+  const match = parts.find((p) => {
+    const s = squash(p);
+    return s && (label.includes(s) || s.includes(label));
+  });
+  return match ?? parts[0] ?? "";
+}
+
 function themeColor(html: string) {
   const tag = html.match(/<meta[^>]+name=["']theme-color["'][^>]*>/i)?.[0];
   const raw = tag ? ATTR(tag, "content") : "";
@@ -70,7 +88,7 @@ export async function readProfile(raw: string): Promise<Profile> {
     });
     if (!res.ok) return fallback;
     const html = (await res.text()).slice(0, 200_000);
-    const title = html.match(/<title[^>]*>([^<]+)/i)?.[1]?.replace(/\s*[|–-].*$/, "").trim();
+    const title = nameOf(html, host);
     const logo = iconOf(html, new URL(res.url));
     return {
       host,
