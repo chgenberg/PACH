@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
 import { DeliveryNote } from "@/components/DeliveryNote";
+import { fitToBudget } from "@/lib/budget";
 import { estimate, fmtDay } from "@/lib/delivery";
 import { designSummary } from "@/lib/marking";
 import { priceLine, sek } from "@/lib/pricing";
@@ -22,9 +23,12 @@ export default function OfferPage() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [quoteRef, setQuoteRef] = useState("");
+  const [budget, setBudget] = useState("");
   const [sharing, setSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [collectUrl, setCollectUrl] = useState("");
+  const [collectCopied, setCollectCopied] = useState(false);
 
   const rows = useMemo(
     () =>
@@ -42,6 +46,12 @@ export default function OfferPage() {
   const deliveries = rows.map((r) => estimate(r.family, r.item.design).date);
   const lastDelivery = deliveries.reduce((a, b) => (b > a ? b : a), deliveries[0] ?? "");
   const lateCount = cart.eventDate ? deliveries.filter((d) => d > cart.eventDate).length : 0;
+
+  const budgetSek = Number(budget.replace(/\D/g, "")) || 0;
+  const fitBudget = () => {
+    const fit = fitToBudget(rows.map((r) => ({ family: r.family, qty: r.item.qty, design: r.item.design })), budgetSek);
+    rows.forEach((r, i) => cart.setQty(r.item.productId, fit.qty[i]));
+  };
 
   const createQuote = async () => {
     if (!company.trim()) {
@@ -106,6 +116,27 @@ export default function OfferPage() {
       setError(err instanceof Error ? err.message : "Kunde inte skapa länken.");
     } finally {
       setSharing(false);
+    }
+  };
+
+  const hasSizes = rows.some((r) => new Set(r.family.variants.map((v) => v.size)).size > 1);
+  const collectSizes = async () => {
+    if (!quoteRef) return;
+    setError("");
+    try {
+      let url = collectUrl;
+      if (!url) {
+        const res = await fetch("/api/collect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ref: quoteRef }) });
+        const j = await res.json();
+        if (!res.ok) throw new Error(j.error || "Kunde inte skapa länken.");
+        url = `${window.location.origin}${j.path}`;
+        setCollectUrl(url);
+      }
+      await navigator.clipboard?.writeText(url).catch(() => {});
+      setCollectCopied(true);
+      setTimeout(() => setCollectCopied(false), 1800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte skapa länken.");
     }
   };
 
@@ -176,6 +207,19 @@ export default function OfferPage() {
                   <span className="delivery-dot" aria-hidden /> Allt levereras senast ca {fmtDay(lastDelivery)} om ni beställer i dag.
                 </p>
               )}
+            </div>
+            <div className="offer-budget">
+              <span>Har ni en budget?</span>
+              <input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="t.ex. 50 000 kr" inputMode="numeric" aria-label="Budget i kronor" />
+              <button type="button" disabled={!budgetSek} onClick={fitBudget}>
+                Anpassa antalen
+              </button>
+              {budgetSek ? (
+                <p className={total <= budgetSek ? "delivery ok" : "delivery late"}>
+                  <span className="delivery-dot" aria-hidden />{" "}
+                  {total <= budgetSek ? `${sek(budgetSek - total)} kvar av budgeten.` : `${sek(total - budgetSek)} över budget – tryck "Anpassa antalen" så skalar vi om alla rader lika mycket.`}
+                </p>
+              ) : null}
             </div>
             <ul className="offer-list">
               {rows.map(({ line, image, item, family }) => (
@@ -249,6 +293,19 @@ export default function OfferPage() {
                       {sharing ? "Skapar länk…" : shareUrl ? (copied ? "Länk kopierad ✓" : "Kopiera länken igen") : "Dela med teamet"}
                     </button>
                   </div>
+                  {hasSizes ? (
+                    <button type="button" className="offer-share offer-collect" onClick={() => void collectSizes()}>
+                      {collectUrl ? (collectCopied ? "Storlekslänk kopierad ✓" : "Kopiera storlekslänken") : "Samla in storlekar från teamet"}
+                    </button>
+                  ) : null}
+                  {collectUrl ? (
+                    <p className="offer-share-link">
+                      Skicka till alla som ska ha plagg – de väljer storlek och namn själva:{" "}
+                      <a href={collectUrl} target="_blank" rel="noreferrer">
+                        {collectUrl.replace(/^https?:\/\//, "")}
+                      </a>
+                    </p>
+                  ) : null}
                   {shareUrl ? (
                     <p className="offer-share-link">
                       Kollegorna kan kommentera och godkänna rad för rad:{" "}

@@ -47,6 +47,7 @@ export function publicView(q: StoredQuote) {
       };
     }),
     comments: share.comments,
+    order: q.order ? { stage: q.order.stage, tracking: q.order.tracking ?? null, history: q.order.history } : null,
   };
 }
 

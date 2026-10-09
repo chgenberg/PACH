@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/components/CartProvider";
+import { peopleForBudget } from "@/lib/budget";
 import { familyById } from "@/lib/catalog";
 import type { EventId } from "@/lib/eventAgent";
 import { packageQty, PACKAGES } from "@/lib/packages";
@@ -14,15 +15,20 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
   const def = PACKAGES[event];
   const [people, setPeople] = useState(def.defaultPeople);
   const [added, setAdded] = useState<string | null>(null);
+  const [budget, setBudget] = useState("");
+  const budgetSek = Number(budget.replace(/\D/g, "")) || 0;
 
-  const tiers = def.tiers.map((t) => {
-    const lines = t.lines.flatMap((l) => {
+  const linesFor = (t: (typeof def.tiers)[number], n: number) =>
+    t.lines.flatMap((l) => {
       const family = familyById(l.id);
       if (!family) return [];
-      const qty = packageQty(l, people);
+      const qty = packageQty(l, n);
       return [{ family, qty, price: priceLine(family, qty).lineTotal }];
     });
-    return { ...t, lines, total: lines.reduce((s, l) => s + l.price, 0) };
+  const tiers = def.tiers.map((t) => {
+    const lines = linesFor(t, people);
+    const reach = budgetSek ? peopleForBudget((n) => linesFor(t, n).reduce((s, l) => s + l.price, 0), budgetSek) : 0;
+    return { ...t, lines, total: lines.reduce((s, l) => s + l.price, 0), reach };
   });
 
   const add = (tier: (typeof tiers)[number]) => {
@@ -41,6 +47,11 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
           <h2>Färdiga paket</h2>
           <p className="drawer-note">Allt som behövs, i rätt antal. Justera sedan fritt i varukorgen.</p>
         </div>
+        <div className="pkgs-controls">
+        <label className="pkgs-people pkgs-budget">
+          <span>Budget (valfritt)</span>
+          <input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="t.ex. 40 000 kr" inputMode="numeric" />
+        </label>
         <label className="pkgs-people">
           <span>Antal {def.people}</span>
           <div className="stepper">
@@ -53,6 +64,7 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
             </button>
           </div>
         </label>
+        </div>
       </div>
       <div className="pkgs-grid">
         {tiers.map((t) => (
@@ -72,6 +84,22 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
                 </li>
               ))}
             </ul>
+            {budgetSek ? (
+              <p className={`pkg-reach${t.reach >= people ? " ok" : ""}`}>
+                {t.reach >= 10 ? (
+                  <>
+                    {sek(budgetSek)} räcker till <b>{t.reach} {def.people}</b>
+                    {t.reach !== people ? (
+                      <button type="button" onClick={() => setPeople(t.reach)}>
+                        Använd
+                      </button>
+                    ) : null}
+                  </>
+                ) : (
+                  "Budgeten räcker inte till det här paketet"
+                )}
+              </p>
+            ) : null}
             <div className="pkg-foot">
               <div>
                 <strong>{sek(t.total)}</strong>

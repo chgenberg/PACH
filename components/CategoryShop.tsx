@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
+import { DEMO_GREETING } from "@/components/DemoStart";
 import { Packages } from "@/components/Packages";
 import { ProductDrawer } from "@/components/ProductDrawer";
 import { isEventId } from "@/lib/eventAgent";
@@ -74,6 +75,26 @@ export function CategoryShop({
   const brandedFor = useRef("");
   const [spots, setSpots] = useState<{ for: string; list: { productId: string; x: number; y: number }[] }>({ for: "", list: [] });
   const shownScene = sceneSrc ?? scene;
+  const [greeting, setGreeting] = useState<{ contact: string; brand: string } | null>(null);
+  useEffect(() => {
+    const raw = sessionStorage.getItem(DEMO_GREETING);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration
+    if (raw) setGreeting(JSON.parse(raw));
+  }, []);
+  const [ideas, setIdeas] = useState<{ for: string; list: { productId: string; reason: string }[] }>({ for: "", list: [] });
+
+  useEffect(() => {
+    if (!cart.host || !isEventId(slug)) return;
+    let alive = true;
+    const host = cart.host;
+    fetch("/api/ideas", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ host, event: slug }) })
+      .then((r) => r.json())
+      .then((j) => alive && Array.isArray(j.ideas) && setIdeas({ for: host, list: j.ideas }))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [cart.host, slug]);
 
   useEffect(() => {
     if (!isEventId(slug)) return;
@@ -164,6 +185,11 @@ export function CategoryShop({
 
   return (
     <div className="cat">
+      {greeting && greeting.brand === cart.brand ? (
+        <p className="demo-hello">
+          {greeting.contact ? `Hej ${greeting.contact}! ` : ""}Vi har förberett {name.toLowerCase()} för {greeting.brand} – allt nedan är på riktigt och kan beställas direkt.
+        </p>
+      ) : null}
       <section className="evhero">
         <div className="evhero-text">
           <p className="kicker">
@@ -230,6 +256,30 @@ export function CategoryShop({
             : null}
         </div>
       </section>
+
+      {ideas.for === cart.host && ideas.list.length && !run ? (
+        <section className="ideas">
+          <h2>Utvalt för {cart.brand || cart.host}</h2>
+          <p className="drawer-note">Vår agent har läst på om er verksamhet och valt det som passar er bäst.</p>
+          <div className="ideas-grid">
+            {ideas.list.map((idea) => {
+              const item = items.find((it) => it.id === idea.productId);
+              if (!item) return null;
+              const src = images[item.id] ?? item.image;
+              return (
+                <button key={idea.productId} type="button" className="idea" onClick={() => setOpen(item.id)}>
+                  <Image src={src} alt={item.name} width={320} height={320} unoptimized={src.startsWith("/api/")} />
+                  <span>
+                    <b>{item.name}</b>
+                    <small>{idea.reason}</small>
+                    <em>från {sek(item.from)} · {cart.has(item.id) ? "Tillagd ✓" : "Lägg till +"}</em>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ) : null}
 
       {isEventId(slug) ? <Packages event={slug} images={images} /> : null}
 

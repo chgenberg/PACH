@@ -186,7 +186,16 @@ function sanitizePlacement(f: Family, raw: unknown): Placement | undefined {
     point: vec(d.point),
     normal: vec(d.normal),
     sizeCm: Math.min(maxSizeCm(f), Math.max(2, Math.round(Number(d.sizeCm) || 6))),
+    logo: safeLogo(d.logo),
   };
+}
+
+/** The print file follows the order: our own logo endpoint or an uploaded image, nothing else. */
+function safeLogo(v: unknown): string | undefined {
+  if (typeof v !== "string") return undefined;
+  if (/^\/api\/brand-logo\?host=[\w.%-]+(&variant=dark)?$/.test(v)) return v;
+  if (/^data:image\/(png|jpeg|webp|svg\+xml);base64,/.test(v) && v.length < 4_000_000) return v;
+  return undefined;
 }
 
 /** Server-side guard: keep only known values from a client-sent design. */

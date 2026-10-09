@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
-import { getQuote, listQuotes, QUOTE_STATUSES, type QuoteStatus, saveQuote, view } from "@/lib/quotes";
+import { cacheKey, storeImage } from "@/lib/brandCache";
+import { getQuote, listQuotes, ORDER_STAGES, type OrderStage, QUOTE_STATUSES, type QuoteStatus, saveQuote, view } from "@/lib/quotes";
 
 export const runtime = "nodejs";
 
-type Patch = { status?: QuoteStatus; approved?: boolean; kost?: { productId: string; pct: number }; invoice?: boolean };
+type Patch = {
+  status?: QuoteStatus;
+  approved?: boolean;
+  kost?: { productId: string; pct: number };
+  invoice?: boolean;
+  order?: { stage: OrderStage; note?: string; photo?: string; tracking?: string };
+};
 
 async function nextInvoiceNumber() {
   const used = (await listQuotes()).map((q) => Number(q.invoice.invoiceNumber?.slice(2) ?? 0));
@@ -29,6 +36,16 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ ref: s
       next.invoice.invoicedAt = new Date().toISOString();
       next.status = "fakturerad";
     }
+  }
+  if (body.order && (ORDER_STAGES as readonly string[]).includes(body.order.stage)) {
+    const at = new Date().toISOString();
+    const photo = typeof body.order.photo === "string" && /^data:image\/(png|jpeg|webp);base64,/.test(body.order.photo) && body.order.photo.length < 8_000_000
+      ? await storeImage(cacheKey("order-photo", quote.ref, at), Buffer.from(body.order.photo.split(",", 2)[1], "base64"))
+      : undefined;
+    const note = typeof body.order.note === "string" ? body.order.note.trim().slice(0, 300) || undefined : undefined;
+    const tracking = typeof body.order.tracking === "string" ? body.order.tracking.trim().slice(0, 60) || undefined : undefined;
+    const prev = next.order ?? { stage: body.order.stage, history: [] };
+    next.order = { stage: body.order.stage, tracking: tracking ?? prev.tracking, history: [...prev.history, { stage: body.order.stage, at, note, photo }] };
   }
   return NextResponse.json({ quote: view(await saveQuote(next)) });
 }

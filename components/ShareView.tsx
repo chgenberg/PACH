@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { fmtDay } from "@/lib/delivery";
 import { sek } from "@/lib/pricing";
+import { ORDER_STAGES, STAGE_LABEL } from "@/lib/quoteTypes";
 import type { PublicQuote } from "@/lib/share";
 
 const NAME_KEY = "pach.reviewer";
@@ -61,7 +62,8 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
   };
 
   const approved = quote.lines.filter((l) => l.approval).length;
-  const allApproved = approved === quote.lines.length;
+  const inProduction = Boolean(quote.order) || quote.status === "godkand" || quote.status === "fakturerad";
+  const allApproved = approved === quote.lines.length || inProduction;
   const late = quote.eventDate ? quote.lines.filter((l) => l.delivery && l.delivery > quote.eventDate!).length : 0;
   const lineName = (id?: string) => quote.lines.find((l) => l.productId === id)?.name;
 
@@ -75,12 +77,49 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
           Titta igenom produkterna, kommentera och godkänn rad för rad. När alla rader är godkända går offerten vidare till produktion.
         </p>
 
+        {quote.order ? (
+          <section className="share-track">
+            <h2>Leverans</h2>
+            <ol className="track track-row">
+              {ORDER_STAGES.map((st, i) => {
+                const cur = ORDER_STAGES.indexOf(quote.order!.stage);
+                const ev = [...quote.order!.history].reverse().find((h) => h.stage === st);
+                return (
+                  <li key={st} className={i <= cur ? "done" : i === cur + 1 ? "next" : ""}>
+                    <span className="track-dot" aria-hidden />
+                    <div>
+                      <b>{STAGE_LABEL[st]}</b>
+                      {ev ? <small>{when(ev.at)}</small> : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+            {quote.order.tracking ? <p className="drawer-note">Spårningsnummer: {quote.order.tracking}</p> : null}
+            {quote.order.history.some((h) => h.photo || h.note) ? (
+              <div className="share-photos">
+                {quote.order.history
+                  .filter((h) => h.photo || h.note)
+                  .map((h) => (
+                    <figure key={h.at}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- photo from the print shop */}
+                      {h.photo ? <img src={h.photo} alt={STAGE_LABEL[h.stage]} /> : null}
+                      <figcaption>
+                        <b>{STAGE_LABEL[h.stage]}</b> {h.note ?? ""}
+                      </figcaption>
+                    </figure>
+                  ))}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
         <div className={`share-status${allApproved ? " done" : ""}`}>
           <div className="share-progress" aria-hidden>
             <span style={{ width: `${(approved / Math.max(1, quote.lines.length)) * 100}%` }} />
           </div>
           <p>
-            {allApproved ? "Alla rader är godkända – vi återkommer med korrektur." : `${approved} av ${quote.lines.length} rader godkända`}
+            {quote.order ? "Offerten är godkänd och i produktion." : allApproved ? "Offerten är godkänd – vi återkommer med korrektur." : `${approved} av ${quote.lines.length} rader godkända`}
             {quote.eventDate ? ` · behövs ${fmtDay(quote.eventDate)}${late ? ` (${late} hinner inte)` : ""}` : ""}
           </p>
           <button
@@ -136,15 +175,19 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
                   </button>
                 </div>
                 <div className="share-approve">
-                  {l.approval ? (
+                  {inProduction && !l.approval ? (
+                    <span className="share-ok">✓ Godkänd</span>
+                  ) : l.approval ? (
                     <>
                       <span className="share-ok">✓ Godkänd</span>
                       <small>
                         {l.approval.name}, {when(l.approval.at)}
                       </small>
-                      <button type="button" className="offer-remove" disabled={Boolean(busy)} onClick={() => void act(`u${l.productId}`, { action: "unapprove", productId: l.productId })}>
-                        Ångra
-                      </button>
+                      {!inProduction ? (
+                        <button type="button" className="offer-remove" disabled={Boolean(busy)} onClick={() => void act(`u${l.productId}`, { action: "unapprove", productId: l.productId })}>
+                          Ångra
+                        </button>
+                      ) : null}
                     </>
                   ) : (
                     <button type="button" className="share-approve-btn" disabled={Boolean(busy)} onClick={() => void act(`a${l.productId}`, { action: "approve", productId: l.productId })}>

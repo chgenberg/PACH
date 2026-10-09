@@ -7,6 +7,7 @@ import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex, suggestions } from "@/lib/colors";
 import { LogoCustomizer } from "@/components/customizer/LogoCustomizer";
 import { DeliveryNote } from "@/components/DeliveryNote";
+import { TryOn } from "@/components/TryOn";
 import { defaultDesign, designSummary, type LogoDesign } from "@/lib/marking";
 import { priceLine, sek } from "@/lib/pricing";
 
@@ -127,6 +128,8 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
           </button>
           {design ? <p className="drawer-note">{designSummary(family, design)}</p> : <p className="drawer-note">Välj form, märkmetod, färger och placering – och snurra produkten.</p>}
         </div>
+
+        {family.shop === "klader" && cart.host ? <TryOn productId={productId} host={cart.host} image={shots[BASE_COLOR]} color={color} /> : null}
 
         <p className="drawer-desc">
           {family.subcategory} i {family.material.replace(/;/g, ", ").toLowerCase()}. Tryck med er logga ingår.

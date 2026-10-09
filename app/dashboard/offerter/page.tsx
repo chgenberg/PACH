@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { CollectPanel } from "@/components/dashboard/CollectPanel";
+import { OrderPanel } from "@/components/dashboard/OrderPanel";
 import { fmtDate, STATUS_LABEL, useQuotes } from "@/components/dashboard/useQuotes";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
@@ -172,6 +174,8 @@ export default function QuotesPage() {
                 </p>
               ) : null}
             </div>
+            <CollectPanel key={`c${selected.ref}`} quote={selected} />
+            <OrderPanel key={selected.ref} quote={selected} patch={patch} />
             <div className="drawer-foot">
               <a className="drawer-save" href={`/api/dashboard/quotes/${selected.ref}/pdf`} target="_blank" rel="noreferrer">
                 Visa offert-PDF

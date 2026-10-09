@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { QuoteStatus, QuoteView } from "@/lib/quoteTypes";
+import type { OrderStage, QuoteStatus, QuoteView } from "@/lib/quoteTypes";
 
-export type QuotePatch = { status?: QuoteStatus; approved?: boolean; kost?: { productId: string; pct: number }; invoice?: boolean };
+export type QuotePatch = {
+  status?: QuoteStatus;
+  approved?: boolean;
+  kost?: { productId: string; pct: number };
+  invoice?: boolean;
+  order?: { stage: OrderStage; note?: string; photo?: string; tracking?: string };
+};
 
 export const STATUS_LABEL: Record<QuoteStatus, string> = { skapad: "Skapad", skickad: "Skickad", godkand: "Godkänd", fakturerad: "Fakturerad" };
 
