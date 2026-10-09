@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { type CartItem, useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex, suggestions } from "@/lib/colors";
@@ -27,22 +27,58 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  const requests = useRef(new Map<string, Promise<string | null>>());
+
+  /** One request per colour; the image is preloaded so switching to it is instant. */
+  const ensure = useCallback(
+    (hex: string) => {
+      const known = requests.current.get(hex);
+      if (known) return known;
+      const job = fetch("/api/recolor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId, hex, host: cart.host }),
+      })
+        .then(async (res) => {
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok || typeof json.image !== "string") throw new Error();
+          await new Promise((done) => {
+            const img = new window.Image();
+            img.onload = img.onerror = done;
+            img.src = json.image;
+          });
+          setShots((s) => ({ ...s, [hex]: json.image }));
+          return json.image as string;
+        })
+        .catch(() => {
+          requests.current.delete(hex);
+          return null;
+        });
+      requests.current.set(hex, job);
+      return job;
+    },
+    [productId, cart.host],
+  );
+
+  // The standard colours are fetched as soon as the drawer opens.
+  useEffect(() => {
+    for (const s of suggestions(cart.brandColor)) if (s.hex !== BASE_COLOR) void ensure(s.hex.toUpperCase());
+  }, [ensure, cart.brandColor]);
+
   useEffect(() => {
     wanted.current = color;
     if (shots[color]) return;
-    const t = setTimeout(async () => {
-      setFailed("");
-      const res = await fetch("/api/recolor", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productId, hex: color, host: cart.host }),
-      }).catch(() => null);
-      const json = res ? await res.json().catch(() => ({})) : {};
-      if (res?.ok && typeof json.image === "string") setShots((s) => ({ ...s, [color]: json.image }));
-      else if (wanted.current === color) setFailed("Kunde inte byta färg just nu. Försök igen.");
-    }, 450);
+    const standard = suggestions(cart.brandColor).some((s) => s.hex.toUpperCase() === color);
+    const t = setTimeout(
+      async () => {
+        setFailed("");
+        const img = await ensure(color);
+        if (!img && wanted.current === color) setFailed("Kunde inte byta färg just nu. Försök igen.");
+      },
+      standard ? 0 : 450,
+    );
     return () => clearTimeout(t);
-  }, [color, shots, productId, cart.host]);
+  }, [color, shots, ensure, cart.brandColor]);
 
   if (!family) return null;
   const price = priceLine(family, qty);

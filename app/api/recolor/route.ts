@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { cacheKey, cachedUrl, readImage, storeImage } from "@/lib/brandCache";
@@ -6,6 +6,7 @@ import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
 import { normalizeHost } from "@/lib/host";
 import { errorMessage, hasOpenAIKey, recolorProduct } from "@/lib/openai";
+import { stockColorFile } from "@/lib/stockColors";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -22,6 +23,10 @@ export async function POST(req: Request) {
   const brandedId = host ? cacheKey("product-v1", host, family.id) : "";
   const original = brandedId ? await readImage(brandedId) : null;
   if (hex === BASE_COLOR) return NextResponse.json({ image: original ? (await cachedUrl(brandedId))! : family.image });
+  if (!original) {
+    const stock = stockColorFile(family.id, hex);
+    if (await access(path.join(process.cwd(), "public", stock)).then(() => true, () => false)) return NextResponse.json({ image: stock, stock: true });
+  }
 
   try {
     const id = cacheKey("recolor-v1", host, family.id, hex);
