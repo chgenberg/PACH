@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   if (!body.host) return NextResponse.json({ error: "Ange en webbadress" }, { status: 400 });
 
   try {
-    const id = cacheKey("photo-v2", normalizeHost(body.host), ev.slug, String(body.index));
+    const id = cacheKey("photo-v3", normalizeHost(body.host), ev.slug, String(body.index));
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
 

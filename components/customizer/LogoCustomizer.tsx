@@ -52,7 +52,9 @@ export function LogoCustomizer({
   const methods = methodsFor(family);
   const info = METHOD_INFO[design.method];
   const price = markingPrice(design, qty);
-  const logo = design.logo ?? brandLogo;
+  const darkProduct = isDark(color);
+  // The verified company logo comes in a variant for light and one for dark products.
+  const logo = design.logo ?? (brandLogo && darkProduct ? `${brandLogo}&variant=dark` : brandLogo);
   const customColor = !suggestions(brandColor).some((s) => s.hex.toUpperCase() === color);
   const set = (patch: Partial<LogoDesign>) => setDesign((d) => ({ ...d, ...patch }));
 
@@ -68,7 +70,6 @@ export function LogoCustomizer({
   }, [family.id]);
 
   // The artwork only changes with logo, method, colour count, shape and light/dark product – not with every colour pick.
-  const darkProduct = isDark(color);
   const { method, colors, shape } = design;
   useEffect(() => {
     let live = true;
