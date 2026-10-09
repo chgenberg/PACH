@@ -1,0 +1,446 @@
+{
+  "model": "gpt-6-astra",
+  "createdAt": "2026-10-09T16:40:42.550Z",
+  "tags": {
+    "DEMO-P001": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 3,
+        "konferens": 1,
+        "event": 1,
+        "sommar": 3,
+        "julklapp": 0
+      },
+      "note": "En självklar profiltröja för monterpersonal, kickofflag och sommaraktiviteter."
+    },
+    "DEMO-P002": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 3,
+        "konferens": 1,
+        "event": 1,
+        "sommar": 3,
+        "julklapp": 1
+      },
+      "note": "Passar särskilt bra som gemensam profiltröja på mässa, kickoff och sommarfest."
+    },
+    "DEMO-P003": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 2,
+        "konferens": 2,
+        "event": 1,
+        "sommar": 2,
+        "julklapp": 1
+      },
+      "note": "Ett representativt personalplagg för mässor, konferenser och gemensamma aktiviteter."
+    },
+    "DEMO-P004": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 1,
+        "sommar": 0,
+        "julklapp": 3
+      },
+      "note": "En uppskattad lagtröja på kickoff och en användbar julklapp."
+    },
+    "DEMO-P005": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 1,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Passar som gemensamt lagplagg på kickoff och som värmande julgåva."
+    },
+    "DEMO-P006": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Ett bra ytterplagg för utomhuskickoff och en praktisk personaljulklapp."
+    },
+    "DEMO-P007": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 3
+      },
+      "note": "Värmande fleece passar utomhusaktiviteter på kickoff och julgåvor."
+    },
+    "DEMO-P008": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 3,
+        "julklapp": 1
+      },
+      "note": "Ett självklart lagplagg för aktiva kickoffar och sommarens rörelseaktiviteter."
+    },
+    "DEMO-P009": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Regnskyddet gör jackan relevant för utomhuskickoff och praktiska julgåvor."
+    },
+    "DEMO-P010": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 1,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "Främst ett arbetsplagg, möjligen användbart vid praktiska kickoffaktiviteter."
+    },
+    "DEMO-P011": {
+      "scores": {
+        "massa": 2,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 1,
+        "sommar": 3,
+        "julklapp": 0
+      },
+      "note": "Kepsen passar som lagmarkör på kickoff, mässgiveaway och solskydd på sommaren."
+    },
+    "DEMO-P012": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 2,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 3
+      },
+      "note": "En tydlig vintergåva som även passar kickoff i kallt väder."
+    },
+    "DEMO-P013": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Halsvärmaren passar aktiva kickoffar i kyligt väder och praktiska julgåvor."
+    },
+    "DEMO-P014": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 1,
+        "sommar": 2,
+        "julklapp": 0
+      },
+      "note": "En utmärkt bärkasse för mässmaterial, konferenshandlingar och sommarens utflykter."
+    },
+    "DEMO-P015": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 3,
+        "konferens": 1,
+        "event": 1,
+        "sommar": 2,
+        "julklapp": 2
+      },
+      "note": "En praktisk väska för kickoff och sommarutflykter som även fungerar som julgåva."
+    },
+    "DEMO-P016": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 3,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 2,
+        "julklapp": 2
+      },
+      "note": "Sportväskan passar lagaktiviteter, sommarens träning och användbara personalgåvor."
+    },
+    "DEMO-P017": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Ett relevant konferenstillbehör som också fungerar som praktisk julklapp."
+    },
+    "DEMO-P018": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 2,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 3,
+        "julklapp": 0
+      },
+      "note": "Kylväskan är självklar för sommarpresenter och picknick på utomhuskickoff."
+    },
+    "DEMO-P019": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 2,
+        "konferens": 1,
+        "event": 1,
+        "sommar": 2,
+        "julklapp": 3
+      },
+      "note": "En hållbar julgåva som också håller drycken varm eller kall under utomhusaktiviteter."
+    },
+    "DEMO-P020": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 3,
+        "konferens": 3,
+        "event": 1,
+        "sommar": 3,
+        "julklapp": 1
+      },
+      "note": "Vattenflaskan passar perfekt under kickoffaktiviteter, konferensdagar och varma sommardagar."
+    },
+    "DEMO-P021": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 2,
+        "event": 2,
+        "sommar": 1,
+        "julklapp": 3
+      },
+      "note": "En uppskattad julgåva och ett användbart minne från konferenser eller brandevent."
+    },
+    "DEMO-P022": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 2,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Muggen passar konferensens kaffepauser och som bestående event- eller julgåva."
+    },
+    "DEMO-P023": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 2,
+        "sommar": 2,
+        "julklapp": 1
+      },
+      "note": "Glasflaskan passar konferensbordet och som gåva vid event eller sommarfest."
+    },
+    "DEMO-P024": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "En typisk volymgiveaway på mässor och ett självklart skrivredskap på konferenser."
+    },
+    "DEMO-P025": {
+      "scores": {
+        "massa": 2,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "Metallpennan passar konferensanteckningar och som lite mer påkostad mässgiveaway."
+    },
+    "DEMO-P026": {
+      "scores": {
+        "massa": 2,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Anteckningsboken passar konferenser, utvalda mässkontakter och praktiska julgåvor."
+    },
+    "DEMO-P027": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 0,
+        "konferens": 1,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 2
+      },
+      "note": "Främst en praktisk julgåva för den egna arbetsplatsen."
+    },
+    "DEMO-P028": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 2,
+        "konferens": 3,
+        "event": 1,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "Nyckelbandet passar deltagarbrickor på mässor, konferenser och större kickoffar."
+    },
+    "DEMO-P029": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 2,
+        "konferens": 0,
+        "event": 3,
+        "sommar": 1,
+        "julklapp": 2
+      },
+      "note": "Ett omtänksamt regnskydd för eventgäster och kickoffdeltagare som även fungerar som julgåva."
+    },
+    "DEMO-P030": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 1,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "En lätt och billig mässgiveaway för synlighet under den mörka årstiden."
+    },
+    "DEMO-P031": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 2,
+        "sommar": 1,
+        "julklapp": 3
+      },
+      "note": "En användbar konferensprodukt och en uppskattad teknikgåva vid event eller jul."
+    },
+    "DEMO-P032": {
+      "scores": {
+        "massa": 2,
+        "kickoff": 1,
+        "konferens": 3,
+        "event": 1,
+        "sommar": 0,
+        "julklapp": 1
+      },
+      "note": "En smidig mässgiveaway som hjälper konferensdeltagare att ladda sina enheter."
+    },
+    "DEMO-P033": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 0,
+        "konferens": 2,
+        "event": 2,
+        "sommar": 0,
+        "julklapp": 3
+      },
+      "note": "En praktisk teknikjulklapp som även passar konferenser och eventgåvor."
+    },
+    "DEMO-P034": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 1,
+        "konferens": 0,
+        "event": 2,
+        "sommar": 3,
+        "julklapp": 3
+      },
+      "note": "Högtalaren är en uppskattad sommar- eller julgåva och ett minnesvärt eventminne."
+    },
+    "DEMO-P035": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 2,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 3,
+        "julklapp": 0
+      },
+      "note": "Picknickfilten passar sommarens utflykter och gemensamma pauser på utomhuskickoff."
+    },
+    "DEMO-P036": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 1,
+        "konferens": 0,
+        "event": 0,
+        "sommar": 3,
+        "julklapp": 0
+      },
+      "note": "En självklar sommargåva för strand och bad."
+    },
+    "DEMO-P037": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 2,
+        "konferens": 0,
+        "event": 3,
+        "sommar": 2,
+        "julklapp": 1
+      },
+      "note": "Förklädet passar eventservering, matlagningskickoff och sommarens grillaktiviteter."
+    },
+    "DEMO-P038": {
+      "scores": {
+        "massa": 0,
+        "kickoff": 1,
+        "konferens": 1,
+        "event": 3,
+        "sommar": 1,
+        "julklapp": 3
+      },
+      "note": "Presentsetet passar främst som genomtänkt eventgåva eller julklapp."
+    },
+    "DEMO-P039": {
+      "scores": {
+        "massa": 1,
+        "kickoff": 1,
+        "konferens": 1,
+        "event": 3,
+        "sommar": 0,
+        "julklapp": 3
+      },
+      "note": "Chokladasken är en självklar uppskattningsgåva vid kvällsevent och jul."
+    },
+    "DEMO-P040": {
+      "scores": {
+        "massa": 3,
+        "kickoff": 1,
+        "konferens": 1,
+        "event": 2,
+        "sommar": 0,
+        "julklapp": 0
+      },
+      "note": "Mässdisken är självklar i montern och fungerar även som välkomst- eller profilyta på event."
+    }
+  }
+}

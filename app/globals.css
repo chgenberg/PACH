@@ -703,9 +703,80 @@ h1 {
 
 .cz-logo {
   display: grid;
-  grid-template-columns: 96px 1fr;
-  gap: 12px;
-  align-items: start;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cz-drop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 14px;
+  align-items: center;
+  padding: 12px;
+  border: 1.5px dashed rgba(17, 17, 17, 0.22);
+  border-radius: 16px;
+  background: #fafafb;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.cz-drop:hover,
+.cz-drop.is-dropping {
+  border-color: #111;
+  background: #f2f2f4;
+}
+
+.cz-drop.is-dropping {
+  border-style: solid;
+}
+
+.cz-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cz-drop .cz-logo-thumb {
+  width: 76px;
+  height: 76px;
+}
+
+.cz-logo-thumb.is-dark {
+  border-color: transparent;
+  background: #2a2a2c;
+}
+
+.cz-drop-text b {
+  display: block;
+  font-size: 14px;
+}
+
+.cz-drop-text small {
+  display: block;
+  margin-top: 3px;
+  color: var(--mute);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cz-stage.is-dropping {
+  outline: 3px dashed #111;
+  outline-offset: -14px;
+}
+
+.cz-drop-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  background: rgba(244, 244, 246, 0.82);
+  font-size: 18px;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .cz-logo-thumb {
@@ -875,6 +946,62 @@ h1 {
   .cz-panel {
     border-left: 0;
     border-top: 1px solid var(--line);
+  }
+}
+
+.cart-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  color: #111;
+  transition: background 0.2s var(--ease);
+}
+
+.cart-btn:hover {
+  background: #f5f5f7;
+}
+
+.cart-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cart-count {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: #111;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  animation: cart-bump 420ms var(--ease) both;
+}
+
+@keyframes cart-bump {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
   }
 }
 
@@ -2087,6 +2214,81 @@ a.drawer-save {
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
+}
+
+.cta-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 540px;
+  margin: 18px auto 0;
+  color: var(--mute);
+  font-size: 13px;
+}
+
+.cta-or::before,
+.cta-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.cta-book {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: 540px;
+  margin: 14px auto 0;
+  padding: 14px 18px;
+  border: 1.5px dashed rgba(17, 17, 17, 0.22);
+  border-radius: 18px;
+  background: #fafafb;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), background 0.2s var(--ease);
+}
+
+.cta-book:hover,
+.cta-book.is-dropping {
+  border-color: #111;
+  background: #f2f2f4;
+}
+
+.cta-book.is-dropping {
+  border-style: solid;
+}
+
+.cta-book input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cta-book svg {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cta-book b {
+  display: block;
+  font-size: 15px;
+}
+
+.cta-book small {
+  display: block;
+  margin-top: 2px;
+  color: var(--mute);
+  font-size: 13px;
 }
 
 /* event picker pop-up */

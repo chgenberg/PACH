@@ -1,22 +1,37 @@
 import type { Family } from "@/lib/catalog";
+import tagged from "@/data/event-tags.json";
 
 /**
  * Flödesagenten.
  *
- * Taggar varje produkt med de HÄNDELSER (flöden) där den passar, t.ex. mässa, kick-off,
- * konferens. Just nu är det en deterministisk regelmotor som läser produktens kategori,
- * underkategori och namn. När katalogen växer till tiotusentals artiklar kan samma kontrakt
- * (Family -> EventId[]) bytas ut mot en LLM som kör en gång och skriver taggarna till katalogen –
- * resten av appen behöver inte ändras.
+ * Avgör vilka produkter som passar vilket tillfälle. En språkmodell (scripts/tag-events.mts) bedömer
+ * varje produkt mot varje tillfälle 0–3 utifrån tydliga kriterier – bl.a. årstid (ingen mössa till
+ * sommaren, inga strandhanddukar som julklapp) och användning (giveaways på mässan, kvalitetsgåvor
+ * som julklapp). Poängen ligger i data/event-tags.json; produkter som ännu inte bedömts faller
+ * tillbaka på en regelmotor. Kör om skriptet när katalogen ändras.
  */
 
 export const EVENT_IDS = ["massa", "kickoff", "konferens", "event", "sommar", "julklapp"] as const;
 export type EventId = (typeof EVENT_IDS)[number];
 
-export const isEventId = (v: unknown): v is EventId =>
-  typeof v === "string" && (EVENT_IDS as readonly string[]).includes(v);
+export const isEventId = (v: unknown): v is EventId => typeof v === "string" && (EVENT_IDS as readonly string[]).includes(v);
+
+/** Score 2 = a good fit a seller would suggest; 3 = obvious fit. */
+export const RELEVANT = 2;
+
+const TAGS = (tagged as { tags: Record<string, { scores: Record<string, number> }> }).tags;
+
+export function eventScore(family: Family, ev: EventId): number {
+  const s = TAGS[family.id]?.scores[ev];
+  return typeof s === "number" ? s : ruleTags(family).includes(ev) ? RELEVANT : 0;
+}
 
 export function eventTags(family: Family): EventId[] {
+  return EVENT_IDS.filter((ev) => eventScore(family, ev) >= RELEVANT);
+}
+
+/** Fallback for products the agent has not scored yet. */
+function ruleTags(family: Family): EventId[] {
   const shop = family.shop;
   const sub = family.subcategory.toLowerCase();
   const name = family.name.toLowerCase();
@@ -25,45 +40,29 @@ export function eventTags(family: Family): EventId[] {
 
   const apparel = shop === "klader";
   const tshirt = is("t-shirt", "piké", "funktions");
-  const headwear = is("keps", "mössa", "buff");
+  const warm = is("mössa", "buff", "fleece", "softshell", "jacka", "hoodie", "sweatshirt");
 
-  // MÄSSA – breda giveaways och monter
-  if (shop === "massa-event" || shop === "pennor" || shop === "godis") tags.add("massa");
-  if (tshirt || headwear) tags.add("massa");
-  if (is("tygkasse", "ryggsäck")) tags.add("massa");
-  if (is("flaska", "mugg")) tags.add("massa");
-  if (is("reflex", "nyckelband")) tags.add("massa");
+  // MÄSSA – giveaways och personal i montern
+  if (shop === "massa-event" || shop === "pennor") tags.add("massa");
+  if (tshirt || is("keps", "tygkasse", "nyckelband", "reflex")) tags.add("massa");
 
-  // KICK-OFF – lagkänsla, profilkläder och produkter som engagerar
-  if (apparel) tags.add("kickoff");
-  if (is("ryggsäck", "sportväska", "sportbag")) tags.add("kickoff");
-  if (is("termosmugg", "vattenflaska", "termosflaska")) tags.add("kickoff");
-  if (shop === "godis" || is("högtalare")) tags.add("kickoff");
+  // KICK-OFF – lagkänsla och aktiviteter
+  if (apparel || is("ryggsäck", "sportväska", "sportbag", "vattenflaska", "termosflaska")) tags.add("kickoff");
 
-  // KONFERENS – professionellt, för deltagarna
+  // KONFERENS – för deltagarna under dagen
   if (shop === "pennor" || shop === "elektronik") tags.add("konferens");
-  if (is("anteckningsbok", "skrivbord", "nyckelband", "mugg", "flaska")) tags.add("konferens");
-  if (is("tygkasse", "datorfodral", "piké")) tags.add("konferens");
+  if (is("anteckningsbok", "nyckelband", "mugg", "flaska", "tygkasse", "datorfodral", "piké")) tags.add("konferens");
 
-  // EVENT & FEST – mingel och gäster
-  if (shop === "godis") tags.add("event");
-  if (is("presentask", "badhandduk", "picknick", "förkläde", "filt")) tags.add("event");
-  if (is("keramikmugg", "mugg", "paraply")) tags.add("event");
-  if (is("keps", "t-shirt")) tags.add("event");
+  // EVENT & FEST – det gästerna minns
+  if (shop === "godis" || is("presentask", "förkläde", "keramikmugg", "paraply")) tags.add("event");
 
-  // SOMMAR – utomhus och sol
-  if (tshirt || headwear) tags.add("sommar");
-  if (is("badhandduk", "picknick", "kylväska", "tygkasse")) tags.add("sommar");
-  if (is("vattenflaska", "glasflaska", "termosflaska", "paraply")) tags.add("sommar");
-  if (is("högtalare") || shop === "godis") tags.add("sommar");
+  // SOMMAR – utomhus i värmen, inget vinterplagg
+  if ((tshirt || is("keps")) && !warm) tags.add("sommar");
+  if (is("badhandduk", "picknick", "kylväska", "vattenflaska", "glasflaska", "högtalare")) tags.add("sommar");
 
-  // JULKLAPP & GÅVA – något att ge bort och ta med hem
-  if (is("choklad", "presentask")) tags.add("julklapp");
-  if (is("termosmugg", "keramikmugg", "anteckningsbok", "filt", "badhandduk")) tags.add("julklapp");
-  if (shop === "elektronik") tags.add("julklapp");
-  if (is("hoodie", "mössa", "buff", "ryggsäck")) tags.add("julklapp");
+  // JULKLAPP – kvalitetsgåvor man behåller, inga giveaways eller sommarvaror
+  if (warm || is("choklad", "presentask", "termosmugg", "termosflaska", "filt") || shop === "elektronik") tags.add("julklapp");
 
-  // Varje produkt syns åtminstone på mässan
   if (tags.size === 0) tags.add("massa");
   return EVENT_IDS.filter((id) => tags.has(id));
 }

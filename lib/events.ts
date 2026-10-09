@@ -1,5 +1,5 @@
 import { families } from "@/lib/catalog";
-import { eventTags, EVENT_IDS, type EventId } from "@/lib/eventAgent";
+import { EVENT_IDS, eventScore, type EventId, RELEVANT } from "@/lib/eventAgent";
 
 export type EventDef = {
   slug: EventId;
@@ -112,8 +112,13 @@ export const EVENTS: EventDef[] = [
 
 export const eventOf = (slug: string): EventDef | null => EVENTS.find((e) => e.slug === slug) ?? null;
 
-/** Produkter som flödesagenten taggat för den här händelsen. */
-export const familiesForEvent = (slug: EventId) => families.filter((f) => eventTags(f).includes(slug));
+/** Produkter som flödesagenten bedömt som relevanta för händelsen, bästa matchningen först. */
+export const familiesForEvent = (slug: EventId) =>
+  families
+    .map((f, i) => ({ f, i, score: eventScore(f, slug) }))
+    .filter((x) => x.score >= RELEVANT)
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .map((x) => x.f);
 
 export { EVENT_IDS };
 export type { EventId };

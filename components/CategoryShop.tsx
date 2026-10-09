@@ -6,7 +6,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { ProductDrawer } from "@/components/ProductDrawer";
-import { hostOk, normalizeHost } from "@/lib/host";
+import { hostOk, isBrandbookHost, normalizeHost } from "@/lib/host";
 import { PRINT_PER_UNIT, sek } from "@/lib/pricing";
 
 export type ShopItem = {
@@ -168,7 +168,7 @@ export function CategoryShop({
                 setUrl(e.target.value);
                 setError("");
               }}
-              placeholder={cart.host || "dittforetag.se"}
+              placeholder={cart.host && !isBrandbookHost(cart.host) ? cart.host : "dittforetag.se"}
               inputMode="url"
               autoCapitalize="none"
               autoCorrect="off"

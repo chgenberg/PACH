@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { buildLogoArt, isDark, type LogoArt } from "@/components/customizer/logoArt";
 import { ProductScene, type SceneApi } from "@/components/customizer/ProductScene";
 import type { Family } from "@/lib/catalog";
@@ -16,6 +16,36 @@ const SHAPE_ICON: Record<Shape, string> = {
   kvadrat: "M5 5h14v14H5z",
   rektangel: "M3 8h18v8H3z",
 };
+
+const LOGO_TYPES = /^image\/(png|jpeg|webp|svg\+xml)$/;
+const MAX_LOGO_BYTES = 10_000_000;
+
+/** Read an uploaded logo into a PNG data URL of at most 1200 px, so it stays light in the cart and the offer. */
+async function readLogoFile(file: File): Promise<string> {
+  if (!LOGO_TYPES.test(file.type) && !/\.(png|jpe?g|webp|svg)$/i.test(file.name)) throw new Error("Använd en bild i PNG, JPG, WebP eller SVG.");
+  if (file.size > MAX_LOGO_BYTES) throw new Error("Filen är för stor (max 10 MB).");
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("Kunde inte läsa bilden."));
+      el.src = url;
+    });
+    // SVGs without a width/height report 0, and vectors should be drawn sharp – always at 1200 px.
+    const w0 = img.naturalWidth || 1000;
+    const h0 = img.naturalHeight || 1000;
+    const vector = file.type.includes("svg") || /\.svg$/i.test(file.name);
+    const scale = vector ? 1200 / Math.max(w0, h0) : Math.min(1, 1200 / Math.max(w0, h0));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(w0 * scale));
+    canvas.height = Math.max(1, Math.round(h0 * scale));
+    canvas.getContext("2d")!.drawImage(img, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/png");
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function fallbackKind(f: Family): "box" | "cylinder" | "shirt" {
   if (/mugg|flaska|penna/i.test(f.name)) return "cylinder";
@@ -89,12 +119,36 @@ export function LogoCustomizer({
     api.current = a;
   }, []);
 
-  const upload = (file: File | undefined) => {
+  const [dropping, setDropping] = useState<"panel" | "stage" | null>(null);
+  const [uploadError, setUploadError] = useState("");
+
+  const upload = async (file: File | undefined) => {
+    setDropping(null);
     if (!file) return;
-    const r = new FileReader();
-    r.onload = () => typeof r.result === "string" && set({ logo: r.result });
-    r.readAsDataURL(file);
+    setUploadError("");
+    try {
+      set({ logo: await readLogoFile(file) });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Kunde inte läsa filen.");
+    }
   };
+
+  /** Drag-and-drop handlers shared by the logo box and the 3D stage. */
+  const dropTarget = (where: "panel" | "stage") => ({
+    onDragOver: (e: DragEvent<HTMLElement>) => {
+      if (![...e.dataTransfer.types].includes("Files")) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      if (dropping !== where) setDropping(where);
+    },
+    onDragLeave: (e: DragEvent<HTMLElement>) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropping(null);
+    },
+    onDrop: (e: DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      void upload(e.dataTransfer.files?.[0]);
+    },
+  });
 
   const save = () => {
     const preview = api.current?.capture() ?? "";
@@ -105,7 +159,8 @@ export function LogoCustomizer({
     <div className="cz-wrap" role="dialog" aria-modal="true" aria-label={`Anpassa logga på ${family.name}`}>
       <button type="button" className="drawer-veil" aria-label="Stäng" onClick={onClose} />
       <div className="cz">
-        <div className="cz-stage">
+        <div className={`cz-stage${dropping === "stage" ? " is-dropping" : ""}`} {...dropTarget("stage")}>
+          {dropping === "stage" ? <div className="cz-drop-veil">Släpp för att lägga loggan på produkten</div> : null}
           {modelUrl === undefined ? null : (
             <ProductScene
               modelUrl={modelUrl}
@@ -135,14 +190,25 @@ export function LogoCustomizer({
 
           <section className="cz-sec">
             <p className="drawer-label">Logga</p>
-            <div className="cz-logo">
+            <label className={`cz-drop${dropping === "panel" ? " is-dropping" : ""}`} {...dropTarget("panel")}>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                onChange={(e) => {
+                  void upload(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
               {/* eslint-disable-next-line @next/next/no-img-element -- canvas data URL */}
-              <div className="cz-logo-thumb">{art ? <img src={art.canvas.toDataURL()} alt="Loggan som den trycks" /> : null}</div>
+              <span className={`cz-logo-thumb${darkProduct ? " is-dark" : ""}`}>{art ? <img src={art.canvas.toDataURL()} alt="Loggan som den trycks" /> : null}</span>
+              <span className="cz-drop-text">
+                <b>{dropping === "panel" ? "Släpp loggan här" : "Ladda upp egen logga"}</b>
+                <small>Dra in filen hit eller klicka för att välja · PNG, JPG, SVG</small>
+              </span>
+            </label>
+            {uploadError ? <p className="brandbar-err">{uploadError}</p> : null}
+            <div className="cz-logo">
               <div className="cz-logo-actions">
-                <label className="file-btn">
-                  Byt logga
-                  <input type="file" accept="image/png,image/jpeg,image/svg+xml" onChange={(e) => upload(e.target.files?.[0])} />
-                </label>
                 <form
                   className="cz-site"
                   onSubmit={(e) => {

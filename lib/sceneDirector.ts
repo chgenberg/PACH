@@ -127,7 +127,7 @@ function prompt(sc: Scene, a: SiteAnalysis | null, company: string, colour: stri
 The first reference image shows the exact layout, camera angle, framing, lighting, people and object positions: keep all of them the same, only restyle and brand the scene for this company.
 The second reference image is the company's logo. Replace every "DIN LOGO" placeholder with this exact logo – identical shapes, letters and proportions, no invented or distorted characters. On dark surfaces print the logo in white, on light surfaces in its own colours.
 ${refs.length ? `The remaining reference images are the company's real products from its website: ${refs.map((d, i) => `(${i + 3}) ${d}`).join("; ")}. Reproduce these exact items – same shapes, packaging and colours, without readable small print – ${sc.items}.\n` : ""}Brand colour: ${colour}. ${a?.tone ? `Visual tone: ${a.tone}. ` : ""}Use the brand colour as the dominant colour of ${sc.colours}, combined with white and natural materials. Premium, clean Scandinavian design.
-Company-specific content:
+${a?.palette?.length ? `Secondary brand colours for accents: ${a.palette.join(", ")}.\n` : ""}${a?.rules?.length ? `Brand guidelines to respect:\n${a.rules.map((r) => `- ${r}`).join("\n")}\n` : ""}Company-specific content:
 ${content.join("\n")}
 Realism requirements (most important):
 - It must look like an unedited photo by a professional event photographer: physically plausible light, shadows and reflections, correct perspective, nothing floating in the air.

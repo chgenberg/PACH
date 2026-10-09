@@ -1,6 +1,7 @@
 import sharp from "sharp";
 import { readProfile, type Profile } from "@/lib/profile";
-import { analysisLogo, type SiteAnalysis, siteAnalysis } from "@/lib/siteAnalysis";
+import { isBrandbookHost } from "@/lib/host";
+import { analysisLogo, readAnalysis, type SiteAnalysis, siteAnalysis } from "@/lib/siteAnalysis";
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
@@ -39,6 +40,13 @@ export async function logoPrefersDark(logo: Buffer): Promise<boolean> {
  * site's header (a real wordmark), otherwise the site icon.
  */
 export async function loadBrand(host: string): Promise<{ profile: Profile; logo: Buffer; analysis: SiteAnalysis | null }> {
+  if (isBrandbookHost(host)) {
+    // An uploaded brand book: everything was read and verified when it was uploaded.
+    const analysis = await readAnalysis(host);
+    const logo = await analysisLogo(analysis);
+    if (!analysis || !logo) throw new Error("Brandbooken hittades inte. Ladda upp den igen.");
+    return { profile: { host, name: analysis.brandName, color: analysis.brandColor ?? "#1b1a17", logo: `/api/brand-logo?host=${host}` }, logo, analysis };
+  }
   const profile = await readProfile(host);
   const icon = (await download(profile.logo)) ?? (await download(`https://www.google.com/s2/favicons?domain=${profile.host}&sz=256`));
   if (!icon) throw new Error("Kunde inte hämta logotypen");

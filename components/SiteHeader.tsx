@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CartButton } from "@/components/CartButton";
 
 export function SiteHeader({ back }: { back?: { href: string; label: string } }) {
   return (
@@ -16,6 +17,7 @@ export function SiteHeader({ back }: { back?: { href: string; label: string } })
         <Link href="/dashboard" className="demo-link">
           Dashboard <span>Demo</span>
         </Link>
+        <CartButton />
       </nav>
     </header>
   );

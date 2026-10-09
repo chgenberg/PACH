@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
@@ -63,11 +64,55 @@ export function HomeStudio() {
     }
   };
 
+  const [dragging, setDragging] = useState(false);
+  const [reading, setReading] = useState<{ complete: boolean } | null>(null);
+
+  /** Upload a brand book; the agent reads it and the rest of the flow treats it like a website. */
+  const readBook = async (list: FileList | null) => {
+    setDragging(false);
+    const files = [...(list ?? [])].filter((f) => /pdf|png|jpe?g|webp/i.test(f.type || f.name));
+    if (!files.length) {
+      if (list?.length) setError("Använd en PDF eller bilder (PNG, JPG, WebP).");
+      return;
+    }
+    setError("");
+    setReading({ complete: false });
+    try {
+      const form = new FormData();
+      files.slice(0, 8).forEach((f) => form.append("files", f));
+      const res = await fetch("/api/brandbook", { method: "POST", body: form });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Kunde inte läsa brandbooken.");
+      setReading({ complete: true });
+      await new Promise((r) => setTimeout(r, 700));
+      cart.setBrand(json.host, json.name, json.color ?? undefined);
+      setPicking(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Kunde inte läsa brandbooken.");
+    } finally {
+      setReading(null);
+    }
+  };
+
   return (
     <div className="shop">
       <SiteHeader />
 
-      <section className="cta">
+      <section
+        className="cta"
+        onDragOver={(e) => {
+          if (![...e.dataTransfer.types].includes("Files")) return;
+          e.preventDefault();
+          if (!dragging) setDragging(true);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragging(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          void readBook(e.dataTransfer.files);
+        }}
+      >
         <p className="kicker">Profilprodukter med er logga</p>
         <h1>Er logga. På allt.</h1>
         <p className="lede">Skriv in er webbadress så visar vi hela eventet och varje produkt med er logga – innan ni beställer.</p>
@@ -114,6 +159,27 @@ export function HomeStudio() {
             ))}
           </p>
         )}
+        <div className="cta-or">
+          <span>eller</span>
+        </div>
+        <label className={`cta-book${dragging ? " is-dropping" : ""}`}>
+          <input
+            type="file"
+            multiple
+            accept="application/pdf,image/png,image/jpeg,image/webp"
+            onChange={(e) => {
+              void readBook(e.target.files);
+              e.target.value = "";
+            }}
+          />
+          <svg viewBox="0 0 24 24" aria-hidden>
+            <path d="M6 3h8l4 4v14H6z M14 3v4h4 M12 10v7 M9 13l3-3 3 3" />
+          </svg>
+          <span>
+            <b>{dragging ? "Släpp brandbooken här" : "Ladda upp er brandbook"}</b>
+            <small>PDF eller bilder av sidorna – vi läser logga, färger och typsnitt därifrån</small>
+          </span>
+        </label>
       </section>
 
       <h2 className="mosaic-title">Välj en händelse</h2>
@@ -149,6 +215,17 @@ export function HomeStudio() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {reading ? (
+        <BrandingLoader
+          name="brandbooken"
+          sub="Agenten läser brandbooken, hittar och granskar loggan och tolkar färger, typsnitt och regler."
+          stages={["Läser brandbookens sidor…", "Hittar den primära loggan…", "Läser färger och typsnitt…", "Tolkar bildspråk och regler…", "Granskar loggan…", "Sista detaljerna…"]}
+          done={0}
+          total={1}
+          complete={reading.complete}
+        />
       ) : null}
     </div>
   );

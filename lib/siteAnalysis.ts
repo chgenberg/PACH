@@ -31,6 +31,10 @@ export type SiteAnalysis = {
   logoSource: string;
   /** Swedish note for the customer when the first logo we found was wrong. */
   logoNote: string;
+  /** From a brand book: secondary colours, typefaces and rules the scenes must respect. */
+  palette?: string[];
+  fonts?: { heading: string; body: string };
+  rules?: string[];
 };
 
 const VERSION = "a2";
@@ -286,11 +290,28 @@ async function analyse(host: string, icon: Buffer): Promise<SiteAnalysis | null>
 
 const inFlight = new Map<string, Promise<SiteAnalysis | null>>();
 
-/** Cached per host; concurrent callers share one run. Returns null when the site can't be read at all. */
-export async function siteAnalysis(host: string, icon: Buffer): Promise<SiteAnalysis | null> {
-  const cached = await readFile(file(host, "analysis.json"), "utf8")
+export async function readAnalysis(host: string): Promise<SiteAnalysis | null> {
+  return readFile(file(host, "analysis.json"), "utf8")
     .then((s) => JSON.parse(s) as SiteAnalysis)
     .catch(() => null);
+}
+
+/** Store an analysis made elsewhere (e.g. from a brand book) with its logo variants. */
+export async function storeAnalysis(a: Omit<SiteAnalysis, "logoLight" | "logoDark">, logo: { light: Buffer; dark: Buffer } | null): Promise<SiteAnalysis> {
+  await mkdir(DIR, { recursive: true });
+  const out: SiteAnalysis = { ...a, logoLight: null, logoDark: null };
+  if (logo) {
+    out.logoLight = file(a.host, "logo-light.png");
+    out.logoDark = file(a.host, "logo-dark.png");
+    await Promise.all([writeFile(out.logoLight, logo.light), writeFile(out.logoDark, logo.dark)]);
+  }
+  await writeFile(file(a.host, "analysis.json"), JSON.stringify(out, null, 2));
+  return out;
+}
+
+/** Cached per host; concurrent callers share one run. Returns null when the site can't be read at all. */
+export async function siteAnalysis(host: string, icon: Buffer): Promise<SiteAnalysis | null> {
+  const cached = await readAnalysis(host);
   if (cached) return cached;
   if (!hasOpenAIKey()) return null;
   let job = inFlight.get(host);
