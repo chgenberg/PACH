@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
 
 const OCCASIONS = [
@@ -223,7 +224,7 @@ export function Onboarding() {
     <main ref={stageRef} className="stage" onKeyDown={onKeyDown}>
       <section className="sheet" aria-labelledby={titleId}>
         <header className="sheet-top">
-          <p className="mark">Pach</p>
+          <Image src="/PACH_logo.png" alt="PACH profile" width={2198} height={1069} priority className="mark" />
           <p className="sr-only" aria-live="polite">
             {copy.title}
           </p>

@@ -1,17 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Instrument_Serif, Schibsted_Grotesk } from "next/font/google";
+import { Nunito } from "next/font/google";
 import "./globals.css";
 
-const sans = Schibsted_Grotesk({
+const sans = Nunito({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "700"],
   variable: "--font-sans",
-});
-
-const serif = Instrument_Serif({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-serif",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +22,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="sv" className={`${sans.variable} ${serif.variable}`}>
+    <html lang="sv" className={sans.variable}>
       <body className="antialiased">{children}</body>
     </html>
   );

@@ -27,11 +27,13 @@ body {
   background: var(--stone);
   color: var(--ink);
   font-family: var(--font-sans), "Helvetica Neue", sans-serif;
+  font-weight: 400;
 }
 
 button,
 input {
   font: inherit;
+  font-weight: 400;
   color: inherit;
 }
 
@@ -97,10 +99,9 @@ button {
 }
 
 .mark {
-  font-family: var(--font-serif), Georgia, serif;
-  font-size: 22px;
-  letter-spacing: -0.03em;
-  line-height: 1;
+  display: block;
+  height: 58px;
+  width: auto;
 }
 
 .meter {
@@ -175,11 +176,10 @@ button {
 h1 {
   margin: 0;
   max-width: 11em;
-  font-family: var(--font-serif), Georgia, serif;
   font-size: clamp(44px, 6vw, 64px);
-  font-weight: 400;
-  letter-spacing: -0.035em;
-  line-height: 0.96;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
 }
 
 .lede {
@@ -247,6 +247,7 @@ h1 {
 .choice-name {
   display: block;
   font-size: 22px;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.1;
 }
@@ -299,8 +300,8 @@ h1 {
 
 .spoken {
   margin: 14px 0 0;
-  font-family: var(--font-serif), Georgia, serif;
   font-size: 22px;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
 
@@ -361,7 +362,7 @@ h1 {
 
 .size b {
   font-size: 22px;
-  font-weight: 500;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
@@ -403,7 +404,7 @@ h1 {
 
 .row strong {
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: -0.02em;
 }
 
