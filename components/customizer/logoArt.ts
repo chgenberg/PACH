@@ -36,6 +36,8 @@ const luminance = (hex: string) => {
   return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
 };
 
+export const isDark = (hex: string) => luminance(hex) < 0.5;
+
 /** Keep the N most common colours of the logo and snap every pixel to the nearest one. */
 function reduceColors(data: Uint8ClampedArray, n: number, ink: [number, number, number]) {
   if (n <= 1) {
@@ -90,12 +92,12 @@ function dropWhiteBackground(data: Uint8ClampedArray) {
 export type LogoArt = { canvas: HTMLCanvasElement; aspect: number };
 
 /** Render the print artwork for a design: shape badge + method look on a transparent canvas. */
-export async function buildLogoArt(src: string | null, d: LogoDesign, productColor: string): Promise<LogoArt> {
+export async function buildLogoArt(src: string | null, d: Pick<LogoDesign, "method" | "colors" | "shape">, productColor: string): Promise<LogoArt> {
   const logo = src ? await loadImage(src).catch(() => null) : null;
   const source: CanvasImageSource = logo ?? placeholderLogo();
   const sw = logo ? logo.naturalWidth : 800;
   const sh = logo ? logo.naturalHeight : 300;
-  const darkProduct = luminance(productColor) < 0.5;
+  const darkProduct = isDark(productColor);
 
   // 1. The logo itself, cleaned and reduced to the method's colours.
   const mark = document.createElement("canvas");

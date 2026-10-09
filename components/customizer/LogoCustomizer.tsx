@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { buildLogoArt, type LogoArt } from "@/components/customizer/logoArt";
+import { buildLogoArt, isDark, type LogoArt } from "@/components/customizer/logoArt";
 import { ProductScene, type SceneApi } from "@/components/customizer/ProductScene";
 import type { Family } from "@/lib/catalog";
 import { colorName, suggestions } from "@/lib/colors";
@@ -53,6 +53,7 @@ export function LogoCustomizer({
   const info = METHOD_INFO[design.method];
   const price = markingPrice(design, qty);
   const logo = design.logo ?? brandLogo;
+  const customColor = !suggestions(brandColor).some((s) => s.hex.toUpperCase() === color);
   const set = (patch: Partial<LogoDesign>) => setDesign((d) => ({ ...d, ...patch }));
 
   useEffect(() => {
@@ -66,13 +67,16 @@ export function LogoCustomizer({
     };
   }, [family.id]);
 
+  // The artwork only changes with logo, method, colour count, shape and light/dark product – not with every colour pick.
+  const darkProduct = isDark(color);
+  const { method, colors, shape } = design;
   useEffect(() => {
     let live = true;
-    buildLogoArt(logo, design, color).then((a) => live && setArt(a));
+    buildLogoArt(logo, { method, colors, shape }, darkProduct ? "#111111" : "#FFFFFF").then((a) => live && setArt(a));
     return () => {
       live = false;
     };
-  }, [logo, design, color]);
+  }, [logo, method, colors, shape, darkProduct]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -234,6 +238,9 @@ export function LogoCustomizer({
               {suggestions(brandColor).map((s) => (
                 <button key={s.hex} type="button" className="swatch" title={s.name} aria-label={s.name} aria-pressed={color === s.hex.toUpperCase()} style={{ background: s.hex }} onClick={() => setColor(s.hex.toUpperCase())} />
               ))}
+              <label className={`swatch swatch-custom${customColor ? " is-on" : ""}`} title="Välj egen färg" style={customColor ? { background: color } : undefined}>
+                <input type="color" value={color.toLowerCase()} onChange={(e) => setColor(e.target.value.toUpperCase())} aria-label="Välj egen färg" />
+              </label>
             </div>
           </section>
 

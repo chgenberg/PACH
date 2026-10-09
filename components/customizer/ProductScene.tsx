@@ -43,34 +43,44 @@ function Studio() {
   );
 }
 
-/** Tint a near-black catalogue texture to the chosen product colour while keeping seams, stitching and metal parts. */
-function tint(material: THREE.Material, hex: string) {
+type Tint = { color: { value: THREE.Color }; amount: { value: number } };
+
+/**
+ * Compile the tint shader once per material. It dyes the near-black catalogue texture while keeping
+ * seams, stitching and metal parts; switching colour afterwards only changes two uniforms.
+ */
+function prepareTint(material: THREE.Material): Tint {
   const m = material as THREE.MeshStandardMaterial;
   if (m.map) {
     m.map.generateMipmaps = false;
     m.map.minFilter = THREE.LinearFilter;
     m.map.needsUpdate = true;
   }
-  const on = hex.toUpperCase() !== BASE_COLOR;
-  const color = new THREE.Color(hex);
+  const uniforms: Tint = { color: { value: new THREE.Color("#ffffff") }, amount: { value: 0 } };
   m.onBeforeCompile = (shader) => {
-    if (!on) return;
-    shader.uniforms.tint = { value: color };
-    shader.fragmentShader = shader.fragmentShader.replace("void main() {", "uniform vec3 tint;\nvoid main() {").replace(
+    shader.uniforms.tint = uniforms.color;
+    shader.uniforms.tintAmount = uniforms.amount;
+    shader.fragmentShader = shader.fragmentShader.replace("void main() {", "uniform vec3 tint;\nuniform float tintAmount;\nvoid main() {").replace(
       "#include <map_fragment>",
       `#ifdef USE_MAP
         vec4 texel = texture2D( map, vMapUv );
         float l = dot( texel.rgb, vec3( 0.299, 0.587, 0.114 ) );
         vec3 dyed = tint * ( 0.62 + 2.4 * l );
         float keep = smoothstep( 0.32, 0.5, l );
-        diffuseColor *= vec4( mix( dyed, texel.rgb, keep ), texel.a );
+        diffuseColor *= vec4( mix( texel.rgb, mix( dyed, texel.rgb, keep ), tintAmount ), texel.a );
       #else
-        diffuseColor.rgb *= tint;
+        diffuseColor.rgb *= mix( vec3( 1.0 ), tint, tintAmount );
       #endif`,
     );
   };
-  m.customProgramCacheKey = () => `tint-${on ? hex : "none"}`;
+  m.customProgramCacheKey = () => "tint-v2";
   m.needsUpdate = true;
+  return uniforms;
+}
+
+function applyTint(t: Tint, hex: string) {
+  t.color.value.set(hex);
+  t.amount.value = hex.toUpperCase() === BASE_COLOR ? 0 : 1;
 }
 
 /** Normalise any model so its largest dimension is 1 unit, centred on the origin. */
@@ -131,9 +141,10 @@ function Product(props: Props & { object: THREE.Object3D }) {
     return list;
   }, [root]);
 
+  const tints = useMemo(() => meshes.map((m) => prepareTint(m.material as THREE.Material)), [meshes]);
   useLayoutEffect(() => {
-    meshes.forEach((m) => tint(m.material as THREE.Material, color));
-  }, [meshes, color]);
+    tints.forEach((t) => applyTint(t, color));
+  }, [tints, color]);
 
   /** Where the logo goes: a clicked point, or a ray shot at the model from the zone's direction. */
   const placement = useMemo<{ mesh: THREE.Mesh; point: THREE.Vector3; normal: THREE.Vector3 } | null>(() => {
