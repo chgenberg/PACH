@@ -4,9 +4,9 @@ import path from "node:path";
 import { cacheKey, cachedUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { colorName } from "@/lib/colors";
-import { designSummary, type LogoDesign } from "@/lib/marking";
+import { defaultDesign, designSummary, type LogoDesign } from "@/lib/marking";
 import { priceLine } from "@/lib/pricing";
-import { getQuote } from "@/lib/quotes";
+import { createQuote, getQuote, type CollectEntry } from "@/lib/quotes";
 import { brandRev } from "@/lib/siteAnalysis";
 
 /**
@@ -20,9 +20,12 @@ export type Address = { name: string; street: string; zip: string; city: string;
 export type Recipient = { id: string; name: string; email?: string; choice?: { productId: string; size: string }; address?: Address; at?: string };
 export type Campaign = {
   token: string;
+  /** Secret for the employer's own order overview (stores created on the site). */
+  adminKey?: string;
+  host?: string;
   kind: "store" | "gift";
   createdAt: string;
-  ref: string;
+  ref?: string;
   company: string;
   brand: string;
   title: string;
@@ -38,6 +41,9 @@ const TOKEN = /^[0-9a-f]{20}$/;
 const file = (t: string) => path.join(DIR, `${t}.json`);
 const id = () => randomBytes(6).toString("hex");
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().slice(0, max) : "");
+
+/** Price per item in a staff store: catalogue price incl. print at a typical store volume. */
+const STORE_QTY = 50;
 
 export const sizesOf = (productId: string) => [...new Set(familyById(productId)?.variants.map((v) => v.size) ?? [])];
 
@@ -105,6 +111,102 @@ export async function createCampaign(input: { ref?: string; kind?: string; title
   });
 }
 
+/** A staff store put together by the employer on the site: their own assortment, colours and budget. */
+export async function createStoreDirect(input: {
+  host?: string;
+  brand?: string;
+  title?: string;
+  budget?: number;
+  products?: { productId: string; color?: string; image?: string }[];
+}): Promise<Campaign | { error: string }> {
+  const brand = clean(input.brand, 60);
+  if (!brand) return { error: "Ange företagets namn" };
+  const picked = (input.products ?? [])
+    .filter((p, i, a) => familyById(p.productId) && a.findIndex((x) => x.productId === p.productId) === i)
+    .slice(0, 30);
+  if (picked.length < 2) return { error: "Välj minst två produkter till sortimentet" };
+  const budget = Math.round(Number(input.budget) || 0);
+  if (budget < 200 || budget > 50_000) return { error: "Sätt en budget mellan 200 och 50 000 kr" };
+  const host = typeof input.host === "string" && /^[\w.-]+$/.test(input.host) ? input.host.slice(0, 120) : undefined;
+
+  return save({
+    token: randomBytes(10).toString("hex"),
+    adminKey: randomBytes(16).toString("hex"),
+    kind: "store",
+    createdAt: new Date().toISOString(),
+    host,
+    company: brand,
+    brand,
+    title: clean(input.title, 80) || `${brand} Store`,
+    budget,
+    products: picked.map((p) => {
+      const f = familyById(p.productId)!;
+      const design = defaultDesign(f);
+      return {
+        productId: p.productId,
+        image: typeof p.image === "string" && /^\/(api\/img\/[0-9a-f]{24}|merch\/[\w.-]+)$/.test(p.image) ? p.image : undefined,
+        color: typeof p.color === "string" && /^#[0-9a-f]{6}$/i.test(p.color) ? p.color.toUpperCase() : undefined,
+        design,
+        unit: priceLine(f, STORE_QTY, design).unitInclPrint,
+      };
+    }),
+    orders: [],
+    recipients: [],
+  });
+}
+
+export async function getStoreByAdminKey(key: string): Promise<Campaign | null> {
+  if (!/^[0-9a-f]{32}$/.test(key)) return null;
+  return (await listCampaigns()).find((c) => c.adminKey === key) ?? null;
+}
+
+/** Totals per product and size – what the employer orders in the end. */
+export function storeTotals(c: Campaign) {
+  const out = new Map<string, Map<string, number>>();
+  for (const o of c.orders)
+    for (const i of o.items) {
+      const m = out.get(i.productId) ?? new Map<string, number>();
+      m.set(i.size, (m.get(i.size) ?? 0) + i.qty);
+      out.set(i.productId, m);
+    }
+  return [...out.entries()].map(([productId, sizes]) => ({
+    productId,
+    name: familyById(productId)?.name ?? productId,
+    total: [...sizes.values()].reduce((a, b) => a + b, 0),
+    sizes: Object.fromEntries(sizes),
+  }));
+}
+
+/** The employer closes the store and sends everything to PACH as one quote, with each person's sizes. */
+export async function storeToQuote(c: Campaign, contact: { phone?: string }): Promise<{ ref?: string; error?: string }> {
+  if (c.kind !== "store") return { error: "Inte en butik" };
+  if (c.ref) return { ref: c.ref };
+  if (!c.orders.length) return { error: "Inga beställningar än" };
+  const qty = new Map<string, number>();
+  for (const o of c.orders) for (const i of o.items) qty.set(i.productId, (qty.get(i.productId) ?? 0) + i.qty);
+  const entries: CollectEntry[] = [];
+  for (const o of c.orders) {
+    const units = Math.max(...o.items.map((i) => i.qty));
+    for (let n = 0; n < units; n++) {
+      const sizes: Record<string, string> = {};
+      for (const i of o.items) if (n < i.qty && i.size !== "One size") sizes[i.productId] = i.size;
+      if (Object.keys(sizes).length) entries.push({ id: id(), at: o.at, name: n ? `${o.name} (${n + 1})` : o.name, sizes });
+    }
+  }
+  const q = await createQuote({
+    company: c.company,
+    phone: clean(contact.phone, 30),
+    brand: c.brand,
+    host: c.host,
+    lines: c.products
+      .filter((p) => qty.has(p.productId))
+      .map((p) => ({ productId: p.productId, qty: qty.get(p.productId)!, image: p.image, color: p.color, design: p.design })),
+    collect: { token: randomBytes(16).toString("hex"), createdAt: new Date().toISOString(), entries, closed: true },
+  });
+  await save({ ...c, ref: q.ref, closesAt: new Date().toISOString() });
+  return { ref: q.ref };
+}
+
 /** What employees and recipients see: no other people's orders or addresses. */
 export function publicCampaign(c: Campaign) {
   return {
@@ -113,6 +215,7 @@ export function publicCampaign(c: Campaign) {
     title: c.title,
     brand: c.brand,
     budget: c.budget ?? null,
+    closed: Boolean(c.closesAt && c.closesAt <= new Date().toISOString()),
     products: c.products.map((p) => {
       const f = familyById(p.productId)!;
       return {
@@ -132,6 +235,7 @@ export type PublicCampaign = ReturnType<typeof publicCampaign>;
 export async function placeStoreOrder(token: string, body: { name?: string; email?: string; items?: { productId: string; size?: string; qty?: number }[] }) {
   const c = await getCampaign(token);
   if (!c || c.kind !== "store") return { error: "Butiken finns inte" };
+  if (c.closesAt && c.closesAt <= new Date().toISOString()) return { error: "Butiken är stängd" };
   const name = clean(body.name, 60);
   const email = clean(body.email, 120);
   if (!name) return { error: "Skriv ditt namn" };
@@ -148,7 +252,10 @@ export async function placeStoreOrder(token: string, body: { name?: string; emai
     .filter((x): x is NonNullable<typeof x> => x !== null);
   if (!items.length) return { error: "Välj minst en produkt och storlek" };
   const total = items.reduce((s, i) => s + i.unit * i.qty, 0);
-  if (c.budget && total > c.budget) return { error: "Beställningen är över din budget" };
+  const spent = c.orders.filter((o) => o.email.toLowerCase() === email.toLowerCase()).reduce((s, o) => s + o.total, 0);
+  if (c.budget && spent + total > c.budget) {
+    return { error: spent ? `Du har ${Math.max(0, c.budget - spent)} kr kvar av din budget` : "Beställningen är över din budget" };
+  }
   const order: StoreOrder = { id: id(), at: new Date().toISOString(), name, email, items: items.map((i) => ({ productId: i.productId, size: i.size, qty: i.qty })), total };
   await save({ ...c, orders: [...c.orders, order].slice(-5000) });
   return { order: { id: order.id, total } };

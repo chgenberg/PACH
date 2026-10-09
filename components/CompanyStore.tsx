@@ -49,6 +49,17 @@ export function CompanyStore({ store }: { store: PublicCampaign }) {
     }
   };
 
+  if (store.closed) {
+    return (
+      <div className="collect">
+        <div className="offer-thanks">
+          <h1>{store.title} är stängd</h1>
+          <p className="lede">Beställningen är skickad till tryck. Hör av dig till den som skickade länken om du har frågor.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (done !== null) {
     return (
       <div className="collect">

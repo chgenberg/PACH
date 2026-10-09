@@ -195,6 +195,21 @@ export function HomeStudio() {
         })}
       </div>
 
+      <Link href="/butik/skapa" className="staff-teaser">
+        <div>
+          <p className="kicker">Personalbutik</p>
+          <h2>Låt personalen välja själv</h2>
+          <p>Ni bestämmer sortiment och budget – till exempel 3 000 kr per person. Var och en väljer de profilkläder de gillar bäst, med er logga.</p>
+          <span className="staff-cta">Sätt ihop er butik →</span>
+        </div>
+        <div className="staff-pics" aria-hidden>
+          {["DEMO-P004", "DEMO-P006", "DEMO-P011"].map((id) => {
+            const src = familyById(id)?.image;
+            return src ? <Image key={id} src={src} alt="" width={360} height={360} /> : null;
+          })}
+        </div>
+      </Link>
+
       {picking ? (
         <div className="picker-veil" onClick={() => setPicking(false)}>
           <div className="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" onClick={(e) => e.stopPropagation()}>
@@ -212,6 +227,11 @@ export function HomeStudio() {
                   <span>{ev.hint}</span>
                 </button>
               ))}
+              <button type="button" className="picker-card picker-staff" onClick={() => router.push("/butik/skapa")}>
+                <Image src={familyById("DEMO-P004")?.image ?? ""} alt="" width={480} height={320} sizes="(max-width: 860px) 45vw, 260px" />
+                <strong>Personalbutik</strong>
+                <span>Personalen väljer själv inom en budget</span>
+              </button>
             </div>
           </div>
         </div>
