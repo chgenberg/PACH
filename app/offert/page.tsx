@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/CartProvider";
+import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
 import { PRINT_PER_UNIT, PRINT_SETUP, priceLine, sek } from "@/lib/pricing";
@@ -17,6 +18,7 @@ export default function OfferPage() {
   const [created, setCreated] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [quoteRef, setQuoteRef] = useState("");
 
   const rows = useMemo(
     () =>
@@ -55,11 +57,13 @@ export default function OfferPage() {
         const j = await res.json().catch(() => ({}));
         throw new Error(j.error || "Kunde inte skapa offerten.");
       }
+      const ref = res.headers.get("X-Quote-Ref") ?? "";
+      setQuoteRef(ref);
       const blob = await res.blob();
       const href = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = href;
-      a.download = `Offert-${(company.trim() || "PACH").replace(/[^\w-]+/g, "_")}.pdf`;
+      a.download = `Offert-${ref || "PACH"}.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -80,7 +84,7 @@ export default function OfferPage() {
       await fetch("/api/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company: company.trim(), phone: phone.trim(), host: cart.host }),
+        body: JSON.stringify({ ref: quoteRef }),
       }).catch(() => null);
       setSent(true);
       cart.clear();
@@ -91,14 +95,7 @@ export default function OfferPage() {
 
   return (
     <div className="shop">
-      <header className="shop-bar">
-        <Link href="/" className="shop-logo" aria-label="PACH">
-          <Image src="/PACH_logo.png" alt="PACH profile" width={2198} height={1069} priority />
-        </Link>
-        <Link href="/" className="shop-back">
-          Fortsätt handla
-        </Link>
-      </header>
+      <SiteHeader back={{ href: "/", label: "Fortsätt handla" }} />
 
       <div className="cat offer">
         {sent ? (

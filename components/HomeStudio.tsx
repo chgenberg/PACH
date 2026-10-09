@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
+import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { EVENTS } from "@/lib/events";
 import { hostOk, normalizeHost } from "@/lib/host";
@@ -64,11 +65,7 @@ export function HomeStudio() {
 
   return (
     <div className="shop">
-      <header className="shop-bar">
-        <Link href="/" className="shop-logo" aria-label="PACH">
-          <Image src="/PACH_logo.png" alt="PACH profile" width={2198} height={1069} priority />
-        </Link>
-      </header>
+      <SiteHeader />
 
       <section className="cta">
         <p className="kicker">Profilprodukter med er logga</p>

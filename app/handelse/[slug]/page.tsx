@@ -1,7 +1,6 @@
-import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CategoryShop, type ShopItem } from "@/components/CategoryShop";
+import { SiteHeader } from "@/components/SiteHeader";
 import { fromPrice } from "@/lib/catalog";
 import { EVENT_IDS, eventOf, familiesForEvent } from "@/lib/events";
 
@@ -28,14 +27,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
 
   return (
     <div className="shop">
-      <header className="shop-bar">
-        <Link href="/" className="shop-logo" aria-label="PACH">
-          <Image src="/PACH_logo.png" alt="PACH profile" width={2198} height={1069} priority />
-        </Link>
-        <Link href="/" className="shop-back">
-          Tillbaka
-        </Link>
-      </header>
+      <SiteHeader back={{ href: "/", label: "Tillbaka" }} />
       <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} scene={ev.scene}
         stages={ev.stages}
         photos={ev.photos.map((p) => ({ product: p.product, caption: p.caption }))}

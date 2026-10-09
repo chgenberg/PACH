@@ -3,7 +3,7 @@ import { readProfile, type Profile } from "@/lib/profile";
 
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36";
 
-async function download(url: string): Promise<Buffer | null> {
+export async function download(url: string): Promise<Buffer | null> {
   try {
     const res = await fetch(url, { headers: { "User-Agent": UA, Accept: "image/*" }, signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;

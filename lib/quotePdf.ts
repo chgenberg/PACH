@@ -6,6 +6,7 @@ import { readImageUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
 import { priceQuote, sek, type QuoteLine } from "@/lib/pricing";
+import { newRef } from "@/lib/quotes";
 
 export type QuoteInput = {
   company: string;
@@ -13,6 +14,8 @@ export type QuoteInput = {
   brand?: string;
   host?: string;
   lines: { productId: string; qty: number; image?: string; color?: string }[];
+  reference?: string;
+  createdAt?: string;
 };
 
 const INK = "#111111";
@@ -57,7 +60,8 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
   const left = doc.page.margins.left;
   const right = doc.page.width - doc.page.margins.right;
   const width = right - left;
-  const reference = `PACH-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const reference = input.reference ?? newRef();
+  const issued = input.createdAt ? new Date(input.createdAt) : new Date();
 
   // Header
   if (logo) {
@@ -75,7 +79,7 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
     .fillColor(MUTE)
     .text(`Offert ${reference}`, left, 44, { width, align: "right" })
     .text(
-      new Date().toLocaleDateString("sv-SE", { day: "numeric", month: "long", year: "numeric" }),
+      issued.toLocaleDateString("sv-SE", { day: "numeric", month: "long", year: "numeric" }),
       left,
       57,
       { width, align: "right" },

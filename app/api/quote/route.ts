@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { quotePdf, type QuoteInput } from "@/lib/quotePdf";
+import { createQuote } from "@/lib/quotes";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -20,19 +21,16 @@ export async function POST(req: Request) {
   }
 
   try {
-    const pdf = await quotePdf({
-      company: body.company,
-      phone: body.phone ?? "",
-      brand: body.brand,
-      host: body.host,
-      lines: body.lines.map((l) => ({ productId: l.productId, qty: l.qty, image: l.image, color: l.color })),
-    });
-    const filename = `Offert-${body.company.trim().replace(/[^\w-]+/g, "_")}.pdf`;
+    const lines = body.lines.map((l) => ({ productId: l.productId, qty: l.qty, image: l.image, color: l.color }));
+    const saved = await createQuote({ company: body.company.trim(), phone: body.phone ?? "", brand: body.brand, host: body.host, lines });
+    const pdf = await quotePdf({ ...saved, reference: saved.ref });
+    const filename = `Offert-${saved.ref}.pdf`;
     return new Response(new Uint8Array(pdf), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}"`,
         "Cache-Control": "no-store",
+        "X-Quote-Ref": saved.ref,
       },
     });
   } catch (err) {
