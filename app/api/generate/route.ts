@@ -4,7 +4,9 @@ import { NextResponse } from "next/server";
 import sharp from "sharp";
 import { familyById } from "@/lib/catalog";
 import { brandProductPhoto, errorMessage, hasOpenAIKey } from "@/lib/openai";
-import { readProfile } from "@/lib/profile";
+import { cacheKey, cachedUrl, storeImage } from "@/lib/brandCache";
+import { loadBrand } from "@/lib/brandLogo";
+import { normalizeHost } from "@/lib/host";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -53,15 +55,12 @@ export async function POST(req: Request) {
   }
 
   try {
-    const profile = await readProfile(body.host);
+    const id = cacheKey("product-v1", normalizeHost(body.host), family.id);
+    const hit = await cachedUrl(id);
+    if (hit) return NextResponse.json({ productId: family.id, name: family.name, image: hit, cached: true });
 
-    const logoRes = await fetch(profile.logo, { signal: AbortSignal.timeout(8000) });
-    if (!logoRes.ok) throw new Error("Kunde inte hämta logotypen");
-    const logo = Buffer.from(await logoRes.arrayBuffer());
-
-    const photoPath = path.join(process.cwd(), "public", family.image);
-    const productPhoto = await readFile(photoPath);
-
+    const { logo } = await loadBrand(body.host);
+    const productPhoto = await readFile(path.join(process.cwd(), "public", family.image));
     const branded = await brandProductPhoto({
       productPhoto,
       logo,
@@ -69,12 +68,7 @@ export async function POST(req: Request) {
       darkLogo: await logoPrefersDark(logo),
     });
 
-    return NextResponse.json({
-      productId: family.id,
-      name: family.name,
-      image: `data:image/png;base64,${branded.toString("base64")}`,
-      profile: { host: profile.host, name: profile.name },
-    });
+    return NextResponse.json({ productId: family.id, name: family.name, image: await storeImage(id, branded) });
   } catch (err) {
     return NextResponse.json({ error: errorMessage(err) }, { status: 500 });
   }

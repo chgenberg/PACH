@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import PDFDocument from "pdfkit";
 import sharp from "sharp";
+import { readImageUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
 import { priceQuote, sek, type QuoteLine } from "@/lib/pricing";
 
@@ -22,9 +23,11 @@ const TRUST = ["Korrektur innan tryck", "Riktpriser inkl. tryck", "Giltig i 30 d
 
 async function thumbBuffer(input: { productId: string; image?: string }): Promise<Buffer | null> {
   let raw: Buffer | null = null;
-  if (input.image && input.image.startsWith("data:")) {
+  if (input.image?.startsWith("data:")) {
     const b64 = input.image.split(",", 2)[1];
     if (b64) raw = Buffer.from(b64, "base64");
+  } else if (input.image) {
+    raw = await readImageUrl(input.image);
   }
   if (!raw) {
     const family = familyById(input.productId);

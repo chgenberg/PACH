@@ -51,6 +51,29 @@ export async function brandProductPhoto(opts: {
   return Buffer.from(b64, "base64");
 }
 
+/** Rebrand a neutral "DIN LOGO" scene with the company logo, keeping composition, people and light. */
+export async function brandScene(opts: { scene: Buffer; logo: Buffer; company: string; color?: string }): Promise<Buffer> {
+  const ref = await logoReference(opts.logo, false);
+  const colour = opts.color && /^#[0-9a-f]{6}$/i.test(opts.color) ? ` Brand colour: ${opts.color}. Use it as an accent on the large printed surfaces (walls, banners, flags, tablecloths), combined with white and natural materials.` : "";
+  const prompt = `The first image is a photo with "DIN LOGO" placeholders. The second image is the logo of the company "${opts.company}".
+Keep the first image exactly as it is – same composition, camera angle, framing, people, poses, products, lighting and background. Only rebrand it: replace every "DIN LOGO" placeholder with this exact logo – identical shapes, letters and proportions, no invented or distorted characters, no other text. On dark surfaces print the logo in white, on light surfaces in its own colours. Small marks on products follow the material naturally.${colour}
+It must still look like an unedited photo by a professional event photographer.`;
+  const res = await openai().images.edit({
+    model: IMAGE_MODEL,
+    image: [
+      await toFile(opts.scene, "scene.jpg", { type: "image/jpeg" }),
+      await toFile(ref, "logo.png", { type: "image/png" }),
+    ],
+    prompt,
+    size: "1536x1024",
+    quality: IMAGE_QUALITY,
+    output_format: "jpeg",
+  });
+  const b64 = res.data?.[0]?.b64_json;
+  if (!b64) throw new Error("Bildmodellen returnerade ingen bild");
+  return Buffer.from(b64, "base64");
+}
+
 export function errorMessage(err: unknown) {
   if (err instanceof OpenAI.APIError) return `OpenAI ${err.status ?? ""}: ${err.message}`;
   return err instanceof Error ? err.message : String(err);

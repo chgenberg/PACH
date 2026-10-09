@@ -36,7 +36,15 @@ export default async function CategoryPage({ params }: { params: Promise<{ slug:
           Tillbaka
         </Link>
       </header>
-      <CategoryShop slug={shop.slug} name={shop.name} hint={shop.hint} tone={shop.tone} items={items} />
+      <CategoryShop
+        slug={shop.slug}
+        name={shop.name}
+        hint={shop.hint}
+        tone={shop.tone}
+        scene="/scenes/hero.jpg"
+        stages={["Lägger er logga på produkterna…", "Kvalitetsgranskar bilderna…", "Sista detaljerna…"]}
+        items={items}
+      />
     </div>
   );
 }

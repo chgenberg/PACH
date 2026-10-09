@@ -36,7 +36,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
           Tillbaka
         </Link>
       </header>
-      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} items={items} />
+      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} scene={ev.scene} stages={ev.stages} items={items} />
     </div>
   );
 }

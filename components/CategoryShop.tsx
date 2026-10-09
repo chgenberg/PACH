@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { hostOk, normalizeHost } from "@/lib/host";
 import { PRINT_PER_UNIT, sek } from "@/lib/pricing";
@@ -16,7 +17,7 @@ export type ShopItem = {
   colors: string[];
 };
 
-type GenState = { loading?: boolean; image?: string; error?: boolean };
+type Run = { name: string; done: number; total: number; complete: boolean };
 
 async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>) {
   let i = 0;
@@ -26,31 +27,76 @@ async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<v
   await Promise.all(runners);
 }
 
-export function CategoryShop({ slug, name, hint, tone, items }: { slug: string; name: string; hint: string; tone: string; items: ShopItem[] }) {
+const postImage = (url: string, body: object) =>
+  fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    .then(async (res) => {
+      const json = await res.json();
+      return res.ok && typeof json.image === "string" ? (json.image as string) : null;
+    })
+    .catch(() => null);
+
+export function CategoryShop({
+  slug,
+  name,
+  hint,
+  tone,
+  scene,
+  stages,
+  items,
+}: {
+  slug: string;
+  name: string;
+  hint: string;
+  tone: string;
+  scene: string;
+  stages: string[];
+  items: ShopItem[];
+}) {
   const cart = useCart();
-  const [url, setUrl] = useState(cart.host);
+  const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [gen, setGen] = useState<Record<string, GenState>>({});
+  const [run, setRun] = useState<Run | null>(null);
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [sceneSrc, setSceneSrc] = useState<string | null>(null);
+  const brandedFor = useRef("");
 
-  const brandAll = async (host: string) => {
-    setGen(Object.fromEntries(items.map((it) => [it.id, { loading: true }])));
-    await pool(items, 3, async (it) => {
-      try {
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId: it.id, host }),
-        });
-        const json = await res.json();
-        if (!res.ok || !json.image) throw new Error(json.error || "fail");
-        setGen((prev) => ({ ...prev, [it.id]: { image: json.image } }));
-        if (cart.has(it.id)) cart.setImage(it.id, json.image);
-      } catch {
-        setGen((prev) => ({ ...prev, [it.id]: { error: true } }));
-      }
-    });
-  };
+  const brandAll = useCallback(
+    async (host: string, company: string) => {
+      let done = 0;
+      const tick = () => {
+        done += 1;
+        setRun((r) => (r ? { ...r, done } : r));
+      };
+      setRun({ name: company, done: 0, total: items.length + 1, complete: false });
+      const found: Record<string, string> = {};
+      let branded: string | null = null;
+      await Promise.all([
+        postImage("/api/scene", { event: slug, host }).then((img) => {
+          branded = img;
+          tick();
+        }),
+        pool(items, 6, async (it) => {
+          const img = await postImage("/api/generate", { productId: it.id, host });
+          if (img) found[it.id] = img;
+          tick();
+        }),
+      ]);
+      setRun((r) => (r ? { ...r, complete: true } : r));
+      await new Promise((r) => setTimeout(r, 900));
+      setSceneSrc(branded);
+      setImages(found);
+      for (const [id, img] of Object.entries(found)) cart.setImage(id, img);
+      setRun(null);
+    },
+    [items, slug, cart],
+  );
+
+  useEffect(() => {
+    if (!cart.host || brandedFor.current === cart.host) return;
+    brandedFor.current = cart.host;
+    void brandAll(cart.host, cart.brand || cart.host);
+  }, [cart.host, cart.brand, brandAll]);
 
   const submit = async () => {
     const host = normalizeHost(url);
@@ -69,7 +115,7 @@ export function CategoryShop({ slug, name, hint, tone, items }: { slug: string; 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa adressen.");
       cart.setBrand(json.host ?? host, json.name ?? host);
-      void brandAll(json.host ?? host);
+      setUrl("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa adressen.");
     } finally {
@@ -81,53 +127,68 @@ export function CategoryShop({ slug, name, hint, tone, items }: { slug: string; 
 
   return (
     <div className="cat">
-      <p className="kicker">{items.length} produkter</p>
-      <h1>{name}</h1>
-      <p className="lede">{hint}</p>
-
-      <form
-        className="brandbar"
-        onSubmit={(e) => {
-          e.preventDefault();
-          void submit();
-        }}
-      >
-        <input
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setError("");
-          }}
-          placeholder={cart.host || "företag.se"}
-          inputMode="url"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          aria-label="Webbadress"
-        />
-        <button type="submit" disabled={busy}>
-          {busy ? "Läser…" : branded ? "Byt logga" : "Lägg min logga på produkterna"}
-        </button>
-      </form>
-      {error ? <p className="brandbar-err">{error}</p> : branded ? <p className="brandbar-ok">{cart.brand} på produkterna · tryck ingår ({sek(PRINT_PER_UNIT)}/st)</p> : null}
+      <section className="evhero">
+        <div className="evhero-text">
+          <p className="kicker">
+            {items.length} produkter · {name}
+          </p>
+          <h1>{branded && cart.brand ? `${name} för ${cart.brand}` : name}</h1>
+          <p className="lede">
+            {hint}. Ange er webbadress så lägger vi er logga på hela miljön och på varje produkt.
+          </p>
+          <form
+            className="brandbar"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void submit();
+            }}
+          >
+            <input
+              value={url}
+              onChange={(e) => {
+                setUrl(e.target.value);
+                setError("");
+              }}
+              placeholder={cart.host || "dittforetag.se"}
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label="Webbadress"
+            />
+            <button type="submit" disabled={busy || Boolean(run)}>
+              {busy ? "Läser…" : branded ? "Byt logga" : "Skapa med min logga"}
+            </button>
+          </form>
+          {error ? (
+            <p className="brandbar-err">{error}</p>
+          ) : branded ? (
+            <p className="brandbar-ok">
+              {cart.brand} på produkterna · tryck ingår ({sek(PRINT_PER_UNIT)}/st)
+            </p>
+          ) : null}
+        </div>
+        <div className="evhero-scene">
+          <Image key={sceneSrc ?? scene} src={sceneSrc ?? scene} alt={`${name} med ${sceneSrc ? cart.brand : "din"} logga`} width={1536} height={1024} sizes="(max-width: 860px) 100vw, 55vw" unoptimized={Boolean(sceneSrc)} priority />
+        </div>
+      </section>
 
       <ul className="goods">
         {items.map((item) => {
-          const state = gen[item.id];
-          const src = state?.image ?? item.image;
+          const brandedImage = images[item.id];
+          const src = brandedImage ?? item.image;
           const inCart = cart.has(item.id);
           const qty = cart.qtyOf(item.id);
           return (
             <li key={item.id} className={`good${inCart ? " picked" : ""}`}>
-              <div className={`good-photo${state?.loading ? " loading" : ""}`} style={{ background: tone }}>
-                <Image src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={Boolean(state?.image)} />
-                {state?.loading ? <span className="tile-spin" aria-hidden /> : null}
+              <div className="good-photo" style={{ background: tone }}>
+                <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={Boolean(brandedImage)} />
                 {!inCart ? (
                   <button
                     type="button"
                     className="good-add"
                     aria-label={`Lägg till ${item.name}`}
-                    onClick={() => cart.add(item.id, state?.image)}
+                    onClick={() => cart.add(item.id, brandedImage)}
                   >
                     +
                   </button>
@@ -180,6 +241,8 @@ export function CategoryShop({ slug, name, hint, tone, items }: { slug: string; 
           </Link>
         </div>
       ) : null}
+
+      {run ? <BrandingLoader name={run.name} stages={stages} done={run.done} total={run.total} complete={run.complete} /> : null}
     </div>
   );
 }

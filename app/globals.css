@@ -536,39 +536,8 @@ h1 {
 
 .shop-logo img {
   display: block;
-  height: 52px;
+  height: 30px;
   width: auto;
-}
-
-.shop-url {
-  flex: 1;
-  display: flex;
-  max-width: 520px;
-  margin-left: auto;
-  height: 48px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  overflow: hidden;
-  background: #f7f5f1;
-}
-
-.shop-url input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  background: transparent;
-  padding: 0 18px;
-  outline: none;
-}
-
-.shop-url button {
-  padding: 0 18px;
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.shop-url button:disabled {
-  color: var(--mute);
 }
 
 .shop-back {
@@ -578,15 +547,180 @@ h1 {
   text-decoration: none;
 }
 
-.shop-lead,
-.shop-err {
-  margin: 0 28px 14px;
-  color: var(--mute);
-  font-size: 15px;
+/* hero: text left, scene right (home and event pages) */
+.evhero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 40px;
+  align-items: center;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 24px 28px 40px;
 }
 
-.shop-err {
-  color: var(--clay);
+.cat .evhero {
+  padding: 12px 0 36px;
+}
+
+.evhero-text h1 {
+  margin: 6px 0 0;
+  font-size: clamp(34px, 4vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  max-width: 14ch;
+}
+
+.evhero-text .lede {
+  max-width: 44ch;
+}
+
+.evhero-scene {
+  position: relative;
+  aspect-ratio: 3 / 2;
+  border-radius: 20px;
+  overflow: hidden;
+  background: #ececef;
+  box-shadow: 0 30px 60px -30px rgba(17, 17, 17, 0.35);
+}
+
+.evhero-scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: reveal 700ms var(--ease) both;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 22px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  counter-increment: step;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 8px;
+  border-radius: 99px;
+  background: #f5f5f7;
+  font-size: 14px;
+}
+
+.steps li::before {
+  content: counter(step);
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 99px;
+  background: #111;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mosaic-title {
+  max-width: 1360px;
+  margin: 8px auto 14px;
+  padding: 0 28px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* branding loader */
+.loader-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: reveal 300ms var(--ease) both;
+}
+
+.loader-card {
+  width: min(400px, 88vw);
+  padding: 28px 28px 22px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 70px rgba(17, 17, 17, 0.16);
+  text-align: center;
+}
+
+.loader-spin {
+  display: block;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  border-radius: 99px;
+  border: 3px solid #111;
+  border-top-color: transparent;
+  animation: spin 800ms linear infinite;
+}
+
+.loader-spin.is-done {
+  border-color: #1e8e3e;
+  animation: none;
+}
+
+.loader-line {
+  margin: 16px 0 0;
+  font-size: 17px;
+  font-weight: 700;
+  animation: reveal 400ms var(--ease) both;
+}
+
+.loader-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.loader-bar {
+  height: 6px;
+  margin-top: 20px;
+  border-radius: 99px;
+  background: #e8e8ed;
+  overflow: hidden;
+}
+
+.loader-bar div {
+  height: 100%;
+  border-radius: 99px;
+  background: #111;
+  transition: width 300ms linear;
+}
+
+.loader-pct {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: #86868b;
+  font-variant-numeric: tabular-nums;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .mosaic {
@@ -659,42 +793,12 @@ h1 {
   height: 100%;
   object-fit: cover;
   mix-blend-mode: multiply;
+  animation: reveal 700ms var(--ease) both;
 }
 
 .tile-massa .tile-photo {
   left: 38%;
   width: 62%;
-}
-
-.tile-mark {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  z-index: 3;
-}
-
-.tile.loading .tile-photo {
-  filter: saturate(0.7) brightness(0.98);
-  opacity: 0.7;
-}
-
-.tile-spin {
-  position: absolute;
-  right: 18px;
-  bottom: 18px;
-  width: 22px;
-  height: 22px;
-  border-radius: 99px;
-  border: 3px solid rgba(17, 17, 17, 0.18);
-  border-top-color: rgba(17, 17, 17, 0.6);
-  animation: spin 700ms linear infinite;
-  z-index: 3;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 
 .tile-name {
@@ -716,49 +820,8 @@ h1 {
   max-width: 8ch;
 }
 
-.ghost-mark,
-.live-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ghost-mark {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: rgba(17, 17, 17, 0.12);
-}
-
-.live-mark {
-  width: 36px;
-  height: 36px;
-  padding: 4px;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 6px 16px rgba(17, 17, 17, 0.12);
-}
-
-.live-mark.light {
-  background: #111;
-}
-
-.live-mark img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.shop.busy .mosaic {
-  filter: saturate(0.92);
-}
-
-.shop.branded .tile .live-mark {
-  animation: rise 500ms var(--ease) both;
-}
-
 .cat {
-  max-width: 980px;
+  max-width: 1180px;
   margin: 0 auto;
   padding: 12px 28px 48px;
 }
@@ -1249,22 +1312,41 @@ h1 {
     padding: 14px 16px 6px;
   }
 
-  .shop-logo {
-    width: 100%;
-  }
-
-  .shop-url {
-    width: 100%;
-    max-width: none;
-    margin-left: 0;
-  }
-
-  .shop-lead,
-  .shop-err,
   .mosaic,
+  .mosaic-title,
+  .evhero,
   .cat {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .evhero {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .cat .evhero {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .evhero-scene {
+    order: -1;
+  }
+
+  .brandbar {
+    flex-wrap: wrap;
+    border-radius: 20px;
+    padding: 8px;
+  }
+
+  .brandbar input {
+    flex-basis: 100%;
+    padding: 0 12px;
+  }
+
+  .brandbar button {
+    width: 100%;
   }
 
   .mosaic {
@@ -1272,22 +1354,13 @@ h1 {
     grid-auto-rows: 220px;
   }
 
-  .tile,
-  .tile-massa-event,
-  .tile-klader,
-  .tile-vaskor,
-  .tile-paraplyer,
-  .tile-pennor,
-  .tile-elektronik,
-  .tile-godis,
-  .tile-sakerhet,
-  .tile-kontor {
+  .mosaic .tile {
     grid-column: auto;
     grid-row: auto;
   }
 
   .tile-name,
-  .tile-massa-event .tile-name {
+  .tile-massa .tile-name {
     font-size: 28px;
     left: 18px;
   }
