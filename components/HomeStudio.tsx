@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
 import { EVENTS } from "@/lib/events";
@@ -22,6 +22,13 @@ export function HomeStudio() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [picking, setPicking] = useState(false);
+  const reset = useRef(false);
+
+  useEffect(() => {
+    if (!cart.ready || reset.current) return;
+    reset.current = true;
+    cart.clear();
+  }, [cart]);
 
   useEffect(() => {
     if (!picking) return;
@@ -80,7 +87,7 @@ export function HomeStudio() {
               setUrl(e.target.value);
               setError("");
             }}
-            placeholder={cart.host || "dittforetag.se"}
+            placeholder="dittforetag.se"
             inputMode="url"
             autoCapitalize="none"
             autoCorrect="off"

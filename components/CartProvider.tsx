@@ -22,6 +22,8 @@ type CartState = {
   has: (productId: string) => boolean;
   qtyOf: (productId: string) => number;
   count: number;
+  /** True once the saved cart has been read from localStorage. */
+  ready: boolean;
 };
 
 const STORAGE_KEY = "pach.cart.v1";
@@ -76,7 +78,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems((prev) => prev.map((i) => (i.productId === productId ? { ...i, image } : i)));
   }, []);
 
-  const clear = useCallback(() => setItems([]), []);
+  /** Start over: no products, no company. */
+  const clear = useCallback(() => {
+    setItems([]);
+    setHost("");
+    setBrandName("");
+  }, []);
 
   const setBrand = useCallback((h: string, b: string) => {
     setHost(h);
@@ -97,8 +104,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       has: (id) => items.some((i) => i.productId === id),
       qtyOf: (id) => items.find((i) => i.productId === id)?.qty ?? 0,
       count: items.length,
+      ready,
     }),
-    [items, host, brand, setBrand, add, remove, setQty, setImage, clear],
+    [items, host, brand, ready, setBrand, add, remove, setQty, setImage, clear],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
