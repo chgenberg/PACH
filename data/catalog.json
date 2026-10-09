@@ -1,0 +1,1604 @@
+{
+  "families": [
+    {
+      "id": "DEMO-P001",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "T-shirt Bas",
+      "short": "T-shirt Bas för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: T-shirt Bas. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "T-shirt",
+      "material": "100% bomull",
+      "shop": "klader",
+      "decorationId": "DEMO-P001-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P001-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 88.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P001-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 88.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P001-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 88.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P001-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 88.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P001-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 88.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P001-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 88.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P001_t-shirt-bas.png"
+    },
+    {
+      "id": "DEMO-P002",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "T-shirt Premium",
+      "short": "T-shirt Premium för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: T-shirt Premium. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "T-shirt",
+      "material": "100% bomull",
+      "shop": "klader",
+      "decorationId": "DEMO-P002-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P002-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P002-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P002-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P002-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P002-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P002-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 160.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P002_t-shirt-premium.png"
+    },
+    {
+      "id": "DEMO-P003",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Piké Classic",
+      "short": "Piké Classic för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Piké Classic. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Piké",
+      "material": "100% bomull",
+      "shop": "klader",
+      "decorationId": "DEMO-P003-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P003-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P003-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P003-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P003-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P003-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P003-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 268.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P003_pike-classic.png"
+    },
+    {
+      "id": "DEMO-P004",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Hoodie Urban",
+      "short": "Hoodie Urban för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Hoodie Urban. Material: 80% bomull;20% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Hoodie",
+      "material": "80% bomull;20% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P004-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P004-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 448.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P004-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 448.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P004-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 448.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P004-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 448.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P004-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 448.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P004-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 448.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P004_hoodie-urban.png"
+    },
+    {
+      "id": "DEMO-P005",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Sweatshirt Crew",
+      "short": "Sweatshirt Crew för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Sweatshirt Crew. Material: 80% bomull;20% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Sweatshirt",
+      "material": "80% bomull;20% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P005-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P005-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 340.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P005-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 340.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P005-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 340.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P005-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 340.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P005-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 340.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P005-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 340.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P005_sweatshirt-crew.png"
+    },
+    {
+      "id": "DEMO-P006",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Softshell Active",
+      "short": "Softshell Active för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Softshell Active. Material: 95% polyester;5% elastan. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Jacka",
+      "material": "95% polyester;5% elastan",
+      "shop": "klader",
+      "decorationId": "DEMO-P006-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P006-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 718.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P006-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 718.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P006-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 718.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P006-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 718.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P006-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 718.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P006-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 718.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P006_softshell-active.png"
+    },
+    {
+      "id": "DEMO-P007",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Fleece Trail",
+      "short": "Fleece Trail för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Fleece Trail. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Fleece",
+      "material": "100% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P007-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P007-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 412.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P007-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 412.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P007-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 412.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P007-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 412.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P007-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 412.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P007-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 412.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P007_fleece-trail.png"
+    },
+    {
+      "id": "DEMO-P008",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Funktions-T-shirt",
+      "short": "Funktions-T-shirt för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Funktions-T-shirt. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Sport",
+      "material": "100% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P008-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P008-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P008-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P008-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P008-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P008-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P008-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 142.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P008_funktions-t-shirt.png"
+    },
+    {
+      "id": "DEMO-P009",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Skaljacka Rain",
+      "short": "Skaljacka Rain för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Skaljacka Rain. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TEXTILE",
+      "subcategory": "Jacka",
+      "material": "100% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P009-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P009-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 988.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P009-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 988.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P009-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 988.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P009-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 988.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P009-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 988.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P009-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 988.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P009_skaljacka-rain.png"
+    },
+    {
+      "id": "DEMO-P010",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Arbetsväst Pro",
+      "short": "Arbetsväst Pro för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Arbetsväst Pro. Material: 65% polyester;35% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "WORKWEAR",
+      "subcategory": "Väst",
+      "material": "65% polyester;35% bomull",
+      "shop": "sakerhet",
+      "decorationId": "DEMO-P010-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P010-BK-S",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "S",
+          "price": 592.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P010-BK-M",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "M",
+          "price": 592.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P010-BK-L",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "L",
+          "price": 592.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P010-NV-S",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "S",
+          "price": 592.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P010-NV-M",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "M",
+          "price": 592.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P010-NV-L",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "L",
+          "price": 592.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P010_arbetsvast-pro.png"
+    },
+    {
+      "id": "DEMO-P011",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Keps Six",
+      "short": "Keps Six för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Keps Six. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HEADWEAR",
+      "subcategory": "Keps",
+      "material": "100% bomull",
+      "shop": "klader",
+      "decorationId": "DEMO-P011-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P011-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 70.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P011-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 70.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P011_keps-six.png"
+    },
+    {
+      "id": "DEMO-P012",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Mössa Rib",
+      "short": "Mössa Rib för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Mössa Rib. Material: 100% akryl. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HEADWEAR",
+      "subcategory": "Mössa",
+      "material": "100% akryl",
+      "shop": "klader",
+      "decorationId": "DEMO-P012-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P012-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 81.0,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P012-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 81.0,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P012_mossa-rib.png"
+    },
+    {
+      "id": "DEMO-P013",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Buff Sport",
+      "short": "Buff Sport för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Buff Sport. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HEADWEAR",
+      "subcategory": "Halsduk",
+      "material": "100% polyester",
+      "shop": "klader",
+      "decorationId": "DEMO-P013-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P013-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 52.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P013-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 52.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P013_buff-sport.png"
+    },
+    {
+      "id": "DEMO-P014",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Tygkasse Everyday",
+      "short": "Tygkasse Everyday för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Tygkasse Everyday. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "BAGS",
+      "subcategory": "Tygkasse",
+      "material": "100% bomull",
+      "shop": "vaskor",
+      "decorationId": "DEMO-P014-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P014-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 43.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P014-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 43.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P014_tygkasse-everyday.png"
+    },
+    {
+      "id": "DEMO-P015",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Ryggsäck Metro",
+      "short": "Ryggsäck Metro för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Ryggsäck Metro. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "BAGS",
+      "subcategory": "Ryggsäck",
+      "material": "100% polyester",
+      "shop": "vaskor",
+      "decorationId": "DEMO-P015-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P015-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 322.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P015-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 322.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P015_ryggsack-metro.png"
+    },
+    {
+      "id": "DEMO-P016",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Sportbag Team",
+      "short": "Sportbag Team för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Sportbag Team. Material: 100% polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "BAGS",
+      "subcategory": "Sportväska",
+      "material": "100% polyester",
+      "shop": "vaskor",
+      "decorationId": "DEMO-P016-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P016-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 358.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P016-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 358.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P016_sportbag-team.png"
+    },
+    {
+      "id": "DEMO-P017",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Datorfodral 15 tum",
+      "short": "Datorfodral 15 tum för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Datorfodral 15 tum. Material: Polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "BAGS",
+      "subcategory": "Datorfodral",
+      "material": "Polyester",
+      "shop": "vaskor",
+      "decorationId": "DEMO-P017-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P017-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P017-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 160.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P017_datorfodral-15-tum.png"
+    },
+    {
+      "id": "DEMO-P018",
+      "supplierId": "DEMO-S01",
+      "brand": "Demo Nordic Wear",
+      "name": "Kylväska Picnic",
+      "short": "Kylväska Picnic för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Kylväska Picnic. Material: Polyester;PEVA. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "BAGS",
+      "subcategory": "Kylväska",
+      "material": "Polyester;PEVA",
+      "shop": "vaskor",
+      "decorationId": "DEMO-P018-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P018-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 214.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P018-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 214.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P018_kylvaska-picnic.png"
+    },
+    {
+      "id": "DEMO-P019",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Termosflaska 500 ml",
+      "short": "Termosflaska 500 ml för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Termosflaska 500 ml. Material: Rostfritt stål. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "DRINKWARE",
+      "subcategory": "Flaska",
+      "material": "Rostfritt stål",
+      "shop": "kontor",
+      "decorationId": "DEMO-P019-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P019-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P019-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P019_termosflaska-500-ml.png"
+    },
+    {
+      "id": "DEMO-P020",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Vattenflaska 750 ml",
+      "short": "Vattenflaska 750 ml för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Vattenflaska 750 ml. Material: Tritan. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "DRINKWARE",
+      "subcategory": "Flaska",
+      "material": "Tritan",
+      "shop": "kontor",
+      "decorationId": "DEMO-P020-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P020-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 81.0,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P020-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 81.0,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P020_vattenflaska-750-ml.png"
+    },
+    {
+      "id": "DEMO-P021",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Termosmugg 350 ml",
+      "short": "Termosmugg 350 ml för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Termosmugg 350 ml. Material: Rostfritt stål;PP. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "DRINKWARE",
+      "subcategory": "Mugg",
+      "material": "Rostfritt stål;PP",
+      "shop": "kontor",
+      "decorationId": "DEMO-P021-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P021-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P021-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 142.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P021_termosmugg-350-ml.png"
+    },
+    {
+      "id": "DEMO-P022",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Keramikmugg 300 ml",
+      "short": "Keramikmugg 300 ml för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Keramikmugg 300 ml. Material: Keramik. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "DRINKWARE",
+      "subcategory": "Mugg",
+      "material": "Keramik",
+      "shop": "kontor",
+      "decorationId": "DEMO-P022-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P022-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 52.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P022-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 52.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P022_keramikmugg-300-ml.png"
+    },
+    {
+      "id": "DEMO-P023",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Glasflaska 600 ml",
+      "short": "Glasflaska 600 ml för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Glasflaska 600 ml. Material: Glas;silikon. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "DRINKWARE",
+      "subcategory": "Flaska",
+      "material": "Glas;silikon",
+      "shop": "kontor",
+      "decorationId": "DEMO-P023-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P023-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 106.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P023-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 106.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P023_glasflaska-600-ml.png"
+    },
+    {
+      "id": "DEMO-P024",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Kulspetspenna Flow",
+      "short": "Kulspetspenna Flow för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Kulspetspenna Flow. Material: ABS. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "OFFICE",
+      "subcategory": "Penna",
+      "material": "ABS",
+      "shop": "pennor",
+      "decorationId": "DEMO-P024-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P024-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 8.1,
+          "moq": 100
+        },
+        {
+          "sku": "DEMO-P024-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 8.1,
+          "moq": 100
+        }
+      ],
+      "image": "/merch/DEMO-P024_kulspetspenna-flow.png"
+    },
+    {
+      "id": "DEMO-P025",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Metallpenna Sign",
+      "short": "Metallpenna Sign för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Metallpenna Sign. Material: Aluminium. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "OFFICE",
+      "subcategory": "Penna",
+      "material": "Aluminium",
+      "shop": "pennor",
+      "decorationId": "DEMO-P025-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P025-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 34.2,
+          "moq": 100
+        },
+        {
+          "sku": "DEMO-P025-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 34.2,
+          "moq": 100
+        }
+      ],
+      "image": "/merch/DEMO-P025_metallpenna-sign.png"
+    },
+    {
+      "id": "DEMO-P026",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Anteckningsbok A5",
+      "short": "Anteckningsbok A5 för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Anteckningsbok A5. Material: Papper;PU. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "OFFICE",
+      "subcategory": "Anteckningsbok",
+      "material": "Papper;PU",
+      "shop": "kontor",
+      "decorationId": "DEMO-P026-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P026-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 70.2,
+          "moq": 100
+        },
+        {
+          "sku": "DEMO-P026-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 70.2,
+          "moq": 100
+        }
+      ],
+      "image": "/merch/DEMO-P026_anteckningsbok-a5.png"
+    },
+    {
+      "id": "DEMO-P027",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Skrivbordsmatta",
+      "short": "Skrivbordsmatta för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Skrivbordsmatta. Material: PU;gummi. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "OFFICE",
+      "subcategory": "Skrivbord",
+      "material": "PU;gummi",
+      "shop": "kontor",
+      "decorationId": "DEMO-P027-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P027-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 124.2,
+          "moq": 100
+        },
+        {
+          "sku": "DEMO-P027-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 124.2,
+          "moq": 100
+        }
+      ],
+      "image": "/merch/DEMO-P027_skrivbordsmatta.png"
+    },
+    {
+      "id": "DEMO-P028",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Nyckelband 20 mm",
+      "short": "Nyckelband 20 mm för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Nyckelband 20 mm. Material: Polyester;metall. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "ACCESSORIES",
+      "subcategory": "Nyckelband",
+      "material": "Polyester;metall",
+      "shop": "kontor",
+      "decorationId": "DEMO-P028-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P028-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 16.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P028-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 16.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P028_nyckelband-20-mm.png"
+    },
+    {
+      "id": "DEMO-P029",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Paraply Storm",
+      "short": "Paraply Storm för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Paraply Storm. Material: Polyester;glasfiber;stål. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "ACCESSORIES",
+      "subcategory": "Paraply",
+      "material": "Polyester;glasfiber;stål",
+      "shop": "paraplyer",
+      "decorationId": "DEMO-P029-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P029-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P029-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P029_paraply-storm.png"
+    },
+    {
+      "id": "DEMO-P030",
+      "supplierId": "DEMO-S02",
+      "brand": "Demo Profile Goods",
+      "name": "Reflexbricka",
+      "short": "Reflexbricka för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Reflexbricka. Material: PVC. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "ACCESSORIES",
+      "subcategory": "Reflex",
+      "material": "PVC",
+      "shop": "sakerhet",
+      "decorationId": "DEMO-P030-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P030-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 12.6,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P030-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 12.6,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P030_reflexbricka.png"
+    },
+    {
+      "id": "DEMO-P031",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Powerbank 10000 mAh",
+      "short": "Powerbank 10000 mAh för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Powerbank 10000 mAh. Material: ABS;litiumjon. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TECH",
+      "subcategory": "Powerbank",
+      "material": "ABS;litiumjon",
+      "shop": "elektronik",
+      "decorationId": "DEMO-P031-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P031-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 268.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P031-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 268.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P031_powerbank-10000-mah.png"
+    },
+    {
+      "id": "DEMO-P032",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Laddkabel 3-i-1",
+      "short": "Laddkabel 3-i-1 för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Laddkabel 3-i-1. Material: TPE;aluminium. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TECH",
+      "subcategory": "Kabel",
+      "material": "TPE;aluminium",
+      "shop": "elektronik",
+      "decorationId": "DEMO-P032-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P032-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 63.0,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P032-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 63.0,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P032_laddkabel-3-i-1.png"
+    },
+    {
+      "id": "DEMO-P033",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Trådlös laddare 15 W",
+      "short": "Trådlös laddare 15 W för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Trådlös laddare 15 W. Material: ABS. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TECH",
+      "subcategory": "Laddare",
+      "material": "ABS",
+      "shop": "elektronik",
+      "decorationId": "DEMO-P033-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P033-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 142.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P033-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 142.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P033_tradlos-laddare-15-w.png"
+    },
+    {
+      "id": "DEMO-P034",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Bluetooth-högtalare",
+      "short": "Bluetooth-högtalare för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Bluetooth-högtalare. Material: ABS;metall. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "TECH",
+      "subcategory": "Högtalare",
+      "material": "ABS;metall",
+      "shop": "elektronik",
+      "decorationId": "DEMO-P034-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P034-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 286.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P034-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 286.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P034_bluetooth-hogtalare.png"
+    },
+    {
+      "id": "DEMO-P035",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Picknickfilt",
+      "short": "Picknickfilt för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Picknickfilt. Material: Polyester;PE. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HOME",
+      "subcategory": "Filt",
+      "material": "Polyester;PE",
+      "shop": "massa-event",
+      "decorationId": "DEMO-P035-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P035-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 214.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P035-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 214.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P035_picknickfilt.png"
+    },
+    {
+      "id": "DEMO-P036",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Badhandduk 70x140",
+      "short": "Badhandduk 70x140 för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Badhandduk 70x140. Material: 100% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HOME",
+      "subcategory": "Handduk",
+      "material": "100% bomull",
+      "shop": "massa-event",
+      "decorationId": "DEMO-P036-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P036-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P036-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 178.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P036_badhandduk-70x140.png"
+    },
+    {
+      "id": "DEMO-P037",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Förkläde Bistro",
+      "short": "Förkläde Bistro för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Förkläde Bistro. Material: 65% polyester;35% bomull. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "HOME",
+      "subcategory": "Förkläde",
+      "material": "65% polyester;35% bomull",
+      "shop": "massa-event",
+      "decorationId": "DEMO-P037-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P037-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 160.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P037-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 160.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P037_forklade-bistro.png"
+    },
+    {
+      "id": "DEMO-P038",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Presentask Duo",
+      "short": "Presentask Duo för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Presentask Duo. Material: Kartong;rostfritt stål. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "GIFTS",
+      "subcategory": "Presentset",
+      "material": "Kartong;rostfritt stål",
+      "shop": "massa-event",
+      "decorationId": "DEMO-P038-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P038-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 358.2,
+          "moq": 25
+        },
+        {
+          "sku": "DEMO-P038-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 358.2,
+          "moq": 25
+        }
+      ],
+      "image": "/merch/DEMO-P038_presentask-duo.png"
+    },
+    {
+      "id": "DEMO-P039",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Chokladask 100 g",
+      "short": "Chokladask 100 g för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Chokladask 100 g. Material: Mjölkchoklad. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "FOOD",
+      "subcategory": "Choklad",
+      "material": "Mjölkchoklad",
+      "shop": "godis",
+      "decorationId": "DEMO-P039-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P039-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 88.2,
+          "moq": 50
+        },
+        {
+          "sku": "DEMO-P039-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 88.2,
+          "moq": 50
+        }
+      ],
+      "image": "/merch/DEMO-P039_chokladask-100-g.png"
+    },
+    {
+      "id": "DEMO-P040",
+      "supplierId": "DEMO-S03",
+      "brand": "Demo Profile Goods",
+      "name": "Mässdisk Portable",
+      "short": "Mässdisk Portable för företagsprofilering och gåvor.",
+      "description": "Fiktiv exempelprodukt: Mässdisk Portable. Material: Aluminium;polyester. Levereras omärkt eller med vald märkning efter godkänt korrektur. Alla specifikationer, priser och lagersaldon är påhittade för test.",
+      "catalogCode": "EVENT",
+      "subcategory": "Mässmaterial",
+      "material": "Aluminium;polyester",
+      "shop": "massa-event",
+      "decorationId": "DEMO-P040-MARK01",
+      "variants": [
+        {
+          "sku": "DEMO-P040-BK-ONE_SIZE",
+          "colorName": "Svart",
+          "colorHex": "#111111",
+          "size": "ONE_SIZE",
+          "price": 2698.2,
+          "moq": 1
+        },
+        {
+          "sku": "DEMO-P040-NV-ONE_SIZE",
+          "colorName": "Marinblå",
+          "colorHex": "#14243B",
+          "size": "ONE_SIZE",
+          "price": 2698.2,
+          "moq": 1
+        }
+      ],
+      "image": "/merch/DEMO-P040_massdisk-portable.png"
+    }
+  ]
+}

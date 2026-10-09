@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useId, useRef, useState } from "react";
+import { hostOk, normalizeHost } from "@/lib/host";
 
 const OCCASIONS = [
   {
@@ -51,16 +52,6 @@ const EMPTY: Draft = { occasion: null, host: "", date: "", size: null };
 const QUESTIONS = 4;
 
 const occasionOf = (id: OccasionId | null) => OCCASIONS.find((item) => item.id === id) ?? null;
-
-export function normalizeHost(raw: string) {
-  const cut = raw.trim().toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/^www\./, "");
-  return (cut.split(/[/?#]/)[0] ?? "").replace(/\.$/, "");
-}
-
-export function hostOk(host: string) {
-  if (host.length < 4 || host.length > 253 || !host.includes(".") || host.startsWith(".") || host.endsWith(".")) return false;
-  return /^[\p{L}\p{N}.-]+$/u.test(host);
-}
 
 function isoInDays(days: number) {
   const date = new Date();

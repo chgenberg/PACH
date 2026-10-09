@@ -9,15 +9,15 @@ const sans = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Pach",
-  description: "Profilera en mässa, konferens, kick-off eller ett event. Ett steg i taget.",
+  title: "PACH",
+  description: "Profilprodukter med er logotyp. Börja med webbadressen.",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#e5e0d7",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
