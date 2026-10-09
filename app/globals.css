@@ -1163,9 +1163,221 @@ h1 {
 }
 
 .good-check {
+  border: 0;
   background: #1e8e3e;
   color: #fff;
   font-size: 18px;
+  cursor: pointer;
+}
+
+/* product drawer */
+.drawer-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer-veil {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgba(17, 17, 17, 0.25);
+  backdrop-filter: blur(2px);
+  cursor: default;
+}
+
+.drawer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(420px, 100%);
+  margin: 12px;
+  border-radius: 20px;
+  background: #fff;
+  overflow-y: auto;
+  box-shadow: -20px 0 60px rgba(17, 17, 17, 0.15);
+  animation: drawer-in 320ms var(--ease) both;
+}
+
+@keyframes drawer-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 0;
+}
+
+.drawer-head h2 {
+  margin: 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.drawer-x {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 99px;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.drawer-x:hover {
+  background: #f5f5f7;
+}
+
+.drawer-photo {
+  position: relative;
+  margin: 16px 24px 0;
+  aspect-ratio: 1;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #f5f5f7;
+}
+
+.drawer-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  animation: reveal 500ms var(--ease) both;
+}
+
+.drawer-busy {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(4px);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.drawer-busy p {
+  margin: 0;
+}
+
+.drawer-desc {
+  margin: 14px 24px 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--mute);
+}
+
+.drawer-block {
+  margin: 22px 24px 0;
+}
+
+.drawer-label {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.drawer-label span {
+  margin-left: 6px;
+  font-weight: 400;
+  color: var(--mute);
+}
+
+.drawer-note {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--mute);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.swatch {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 99px;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch[aria-pressed="true"],
+.swatch-custom.is-on {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #111;
+}
+
+.swatch-custom {
+  display: block;
+  background: conic-gradient(#e53935, #fdd835, #43a047, #1e88e5, #8e24aa, #e53935);
+  overflow: hidden;
+}
+
+.swatch-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.drawer-foot {
+  display: flex;
+  gap: 10px;
+  margin-top: auto;
+  padding: 28px 24px 24px;
+}
+
+.drawer-remove {
+  height: 52px;
+  padding: 0 18px;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 99px;
+  background: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-save {
+  flex: 1;
+  height: 52px;
+  border: 0;
+  border-radius: 99px;
+  background: #111;
+  color: #fff;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.drawer-save:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .good.picked .good-photo {

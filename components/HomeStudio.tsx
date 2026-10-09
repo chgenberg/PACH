@@ -53,7 +53,7 @@ export function HomeStudio() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa adressen.");
-      cart.setBrand(json.host ?? host, json.name ?? host);
+      cart.setBrand(json.host ?? host, json.name ?? host, json.color);
       setPicking(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa adressen.");

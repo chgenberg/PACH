@@ -51,6 +51,24 @@ export async function brandProductPhoto(opts: {
   return Buffer.from(b64, "base64");
 }
 
+/** Recolour a (branded) product photo, keeping everything else identical. */
+export async function recolorProduct(opts: { image: Buffer; hex: string; colorName: string; productName: string }): Promise<Buffer> {
+  const png = await sharp(opts.image).flatten({ background: "#ffffff" }).resize(1024, 1024, { fit: "contain", background: "#ffffff" }).png().toBuffer();
+  const prompt = `Change only the colour of the ${opts.productName} in this photo to ${opts.colorName} (exact colour ${opts.hex}). The material, texture, stitching, shading and highlights stay natural for that colour.
+Keep everything else exactly the same: the same product shape and angle, the same white background, the same lighting and the same printed logo – identical shapes, letters, size and position. Keep the logo's own colours; only if they would no longer be legible on the new product colour, print the logo in a contrasting colour instead (white on dark products, dark on light products). No other changes, no new text or graphics. Photorealistic product photo.`;
+  const res = await openai().images.edit({
+    model: IMAGE_MODEL,
+    image: await toFile(png, "product.png", { type: "image/png" }),
+    prompt,
+    size: "1024x1024",
+    quality: IMAGE_QUALITY,
+    output_format: "jpeg",
+  });
+  const b64 = res.data?.[0]?.b64_json;
+  if (!b64) throw new Error("Bildmodellen returnerade ingen bild");
+  return Buffer.from(b64, "base64");
+}
+
 /** Editorial lifestyle photo of a real-looking person with the product, the company logo printed on it. */
 export async function brandLifestyle(opts: { productPhoto: Buffer; logo: Buffer; productName: string; scene: string; darkLogo?: boolean }): Promise<Buffer> {
   const ref = await logoReference(opts.logo, Boolean(opts.darkLogo));

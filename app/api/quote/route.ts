@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       phone: body.phone ?? "",
       brand: body.brand,
       host: body.host,
-      lines: body.lines.map((l) => ({ productId: l.productId, qty: l.qty, image: l.image })),
+      lines: body.lines.map((l) => ({ productId: l.productId, qty: l.qty, image: l.image, color: l.color })),
     });
     const filename = `Offert-${body.company.trim().replace(/[^\w-]+/g, "_")}.pdf`;
     return new Response(new Uint8Array(pdf), {

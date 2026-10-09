@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
+import { ProductDrawer } from "@/components/ProductDrawer";
 import { hostOk, normalizeHost } from "@/lib/host";
 import { PRINT_PER_UNIT, sek } from "@/lib/pricing";
 
@@ -67,6 +68,7 @@ export function CategoryShop({
   const [images, setImages] = useState<Record<string, string>>({});
   const [sceneSrc, setSceneSrc] = useState<string | null>(null);
   const [lifestyle, setLifestyle] = useState<(string | null)[]>([]);
+  const [open, setOpen] = useState<string | null>(null);
   const brandedFor = useRef("");
 
   const brandAll = useCallback(
@@ -131,7 +133,7 @@ export function CategoryShop({
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Kunde inte läsa adressen.");
-      cart.setBrand(json.host ?? host, json.name ?? host);
+      cart.setBrand(json.host ?? host, json.name ?? host, json.color);
       setUrl("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kunde inte läsa adressen.");
@@ -192,9 +194,10 @@ export function CategoryShop({
 
       <ul className="goods">
         {items.map((item, index) => {
+          const line = cart.itemOf(item.id);
           const brandedImage = images[item.id];
-          const src = brandedImage ?? item.image;
-          const inCart = cart.has(item.id);
+          const src = (line?.color && line.image) || brandedImage || item.image;
+          const inCart = Boolean(line);
           const qty = cart.qtyOf(item.id);
           const slot = PHOTO_SLOTS.indexOf(index);
           const shot = slot >= 0 ? lifestyle[slot] : null;
@@ -209,7 +212,7 @@ export function CategoryShop({
                     {cart.has(shotOf.product) ? (
                       <em>Tillagd ✓</em>
                     ) : (
-                      <button type="button" onClick={() => cart.add(shotOf.product, images[shotOf.product])}>
+                      <button type="button" onClick={() => setOpen(shotOf.product)}>
                         + Lägg till produkten
                       </button>
                     )}
@@ -218,23 +221,18 @@ export function CategoryShop({
               ) : null}
             <li className={`good${inCart ? " picked" : ""}`}>
               <div className="good-photo" style={{ background: tone }}>
-                <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={Boolean(brandedImage)} />
+                <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={src.startsWith("/api/")} />
                 {!inCart ? (
-                  <button
-                    type="button"
-                    className="good-add"
-                    aria-label={`Lägg till ${item.name}`}
-                    onClick={() => cart.add(item.id, brandedImage)}
-                  >
+                  <button type="button" className="good-add" aria-label={`Lägg till ${item.name}`} onClick={() => setOpen(item.id)}>
                     +
                   </button>
                 ) : (
-                  <span className="good-check" aria-hidden>
+                  <button type="button" className="good-check" aria-label={`Ändra ${item.name}`} title="Ändra färg och antal" onClick={() => setOpen(item.id)}>
                     ✓
-                  </span>
+                  </button>
                 )}
                 <span className="good-colors">
-                  {item.colors.map((hex, i) => (
+                  {(line?.color ? [line.color] : item.colors).map((hex, i) => (
                     <i key={i} style={{ background: hex }} />
                   ))}
                 </span>
@@ -278,6 +276,8 @@ export function CategoryShop({
           </Link>
         </div>
       ) : null}
+
+      {open ? <ProductDrawer key={open} productId={open} baseImage={images[open] ?? items.find((i) => i.id === open)?.image ?? ""} onClose={() => setOpen(null)} /> : null}
 
       {run ? <BrandingLoader name={run.name} stages={stages} done={run.done} total={run.total} complete={run.complete} /> : null}
     </div>

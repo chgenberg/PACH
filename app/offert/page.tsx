@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
+import { BASE_COLOR, colorName } from "@/lib/colors";
 import { PRINT_PER_UNIT, PRINT_SETUP, priceLine, sek } from "@/lib/pricing";
 
 export default function OfferPage() {
@@ -47,7 +48,7 @@ export default function OfferPage() {
           brand: cart.brand,
           company: company.trim(),
           phone: phone.trim(),
-          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image })),
+          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image, color: i.color })),
         }),
       });
       if (!res.ok) {
@@ -133,7 +134,9 @@ export default function OfferPage() {
                   </div>
                   <div className="offer-main">
                     <strong>{line.name}</strong>
-                    <span>{line.spec}</span>
+                    <span>
+                      {line.spec} · {colorName(item.color ?? BASE_COLOR)}
+                    </span>
                     <small>{sek(line.unitInclPrint)}/st inkl. tryck · tryckstart {sek(line.setup)}</small>
                   </div>
                   <div className="offer-qty">

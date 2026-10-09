@@ -4,6 +4,7 @@ import PDFDocument from "pdfkit";
 import sharp from "sharp";
 import { readImageUrl } from "@/lib/brandCache";
 import { familyById } from "@/lib/catalog";
+import { BASE_COLOR, colorName, isHex } from "@/lib/colors";
 import { priceQuote, sek, type QuoteLine } from "@/lib/pricing";
 
 export type QuoteInput = {
@@ -11,7 +12,7 @@ export type QuoteInput = {
   phone: string;
   brand?: string;
   host?: string;
-  lines: { productId: string; qty: number; image?: string }[];
+  lines: { productId: string; qty: number; image?: string; color?: string }[];
 };
 
 const INK = "#111111";
@@ -44,6 +45,7 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
   const thumbs = await Promise.all(input.lines.map((l) => thumbBuffer(l)));
   const thumbById = new Map<string, Buffer | null>();
   input.lines.forEach((l, i) => thumbById.set(l.productId, thumbs[i]));
+  const colorById = new Map(input.lines.map((l) => [l.productId, colorName(isHex(l.color) ? l.color : BASE_COLOR)]));
 
   const logo = await readFile(path.join(process.cwd(), "public", "PACH_logo.png")).catch(() => null);
 
@@ -140,7 +142,7 @@ export async function quotePdf(input: QuoteInput): Promise<Buffer> {
       .font("Helvetica")
       .fontSize(8.5)
       .fillColor(MUTE)
-      .text(`${line.spec}`, cols.product, y + 17, { width: cols.qty - cols.product - 10 })
+      .text(`${line.spec} · ${colorById.get(line.productId)}`, cols.product, y + 17, { width: cols.qty - cols.product - 10 })
       .text(`inkl. tryck · tryckstart ${sek(line.setup)}`, cols.product, y + 28, { width: cols.qty - cols.product - 10 });
 
     doc.font("Helvetica").fontSize(10).fillColor(INK);
