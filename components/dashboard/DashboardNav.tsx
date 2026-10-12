@@ -13,6 +13,7 @@ const ITEMS = [
   { href: "/dashboard/fakturaunderlag", label: "Fakturaunderlag", icon: "M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z M9 9h6 M9 13h6" },
   { href: "/dashboard/kampanjer", label: "Butiker & gåvor", icon: "M4 9h16v11H4z M4 9l2-5h12l2 5 M12 9v11 M8 4c0 3 4 5 4 5s4-2 4-5" },
   { href: "/dashboard/saljstudio", label: "Säljstudio", icon: "M4 19h16 M7 16V9 M12 16V5 M17 16v-4" },
+  { href: "/dashboard/leverantorer", label: "Leverantörer", icon: "M3 20V10l5-3v3l5-3v3l5-3v13z M3 20h18 M7 16h2 M11 16h2 M15 16h2" },
   { href: "/dashboard/installningar", label: "Inställningar", icon: "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z M19 12l2-1-2-4-2 1-2-1V5h-4v2l-2 1-2-1-2 4 2 1v2l-2 1 2 4 2-1 2 1v2h4v-2l2-1 2 1 2-4-2-1z" },
 ];
 
@@ -40,9 +41,26 @@ function useFresh(path: string) {
   return fresh;
 }
 
+/** Urgent things PACH owes its suppliers – unsent orders, flags, expiring agreements, due invoices. */
+function useSupplierUrgent(path: string) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/dashboard/suppliers", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: { suppliers?: { actions: { tone: string }[] }[] }) => live && setCount((j.suppliers ?? []).flatMap((s) => s.actions).filter((a) => a.tone === "urgent").length))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [path]);
+  return count;
+}
+
 export function DashboardNav() {
   const path = usePathname();
   const fresh = useFresh(path);
+  const urgent = useSupplierUrgent(path);
   // The design tool needs the whole screen, so the menu shrinks to icons there.
   const compact = path.startsWith("/dashboard/design");
   return (
@@ -65,10 +83,14 @@ export function DashboardNav() {
             </svg>
             <span className="dash-label">{it.label}</span>
             {it.href === "/dashboard" && fresh ? <span className="dash-count" aria-label={`${fresh} nya händelser`}>{fresh}</span> : null}
+            {it.href === "/dashboard/leverantorer" && urgent ? <span className="dash-count" aria-label={`${urgent} brådskande åtgärder`}>{urgent}</span> : null}
           </Link>
         ))}
       </nav>
-      <Link href="/" className="dash-out" aria-label={compact ? "Till sajten" : undefined} data-tip={compact ? "Till sajten" : undefined}>
+      <Link href="/leverantor" className="dash-out dash-supplier" aria-label={compact ? "Leverantörsportal" : undefined} data-tip={compact ? "Leverantörsportal" : undefined}>
+        ⇄ <span className="dash-label">Leverantörsportal</span>
+      </Link>
+      <Link href="/" className="dash-out dash-out-site" aria-label={compact ? "Till sajten" : undefined} data-tip={compact ? "Till sajten" : undefined}>
         ← <span className="dash-label">Till sajten</span>
       </Link>
     </aside>

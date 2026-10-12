@@ -11,6 +11,8 @@ import { estimate, fmtDay } from "@/lib/delivery";
 import { isBrandbookHost } from "@/lib/host";
 import { colorsOf, type LogoDesign, METHOD_INFO, type Placement, zonesFor } from "@/lib/marking";
 import type { StoredQuote, StoredLine } from "@/lib/quoteTypes";
+import { profileById } from "@/lib/supplierProfiles";
+import { isNwg, SUPPLIER } from "@/lib/supplierTypes";
 import { analysisLogo } from "@/lib/siteAnalysis";
 
 const DPI = 300;
@@ -67,7 +69,7 @@ function sizeSplit(q: StoredQuote, line: StoredLine, f: Family): Map<string, num
   return out;
 }
 
-function skuRows(q: StoredQuote, line: StoredLine, f: Family): SkuRow[] {
+export function skuRows(q: StoredQuote, line: StoredLine, f: Family): SkuRow[] {
   const hex = (line.color ?? BASE_COLOR).toUpperCase();
   const byColor = f.variants.filter((v) => v.colorHex.toUpperCase() === hex);
   const variants = byColor.length ? byColor : f.variants.filter((v) => v.colorHex.toUpperCase() === f.variants[0].colorHex.toUpperCase());
@@ -184,8 +186,9 @@ export async function buildPurchaseOrders(q: StoredQuote): Promise<{ orders: Pur
       folder,
       readyBy: estimate(f, d).date,
     };
-    suppliers.set(f.supplierId, f.brand);
-    groups.set(f.supplierId, [...(groups.get(f.supplierId) ?? []), po]);
+    const supplierId = isNwg(f.id) ? SUPPLIER.id : f.supplierId;
+    suppliers.set(supplierId, profileById(supplierId)?.name ?? f.brand);
+    groups.set(supplierId, [...(groups.get(supplierId) ?? []), po]);
   }
 
   const orders: PurchaseOrder[] = [...groups.entries()].map(([supplierId, lines], i) => ({

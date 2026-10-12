@@ -7,6 +7,60 @@ import type { PurchaseOrder } from "@/lib/purchaseOrders";
 import { ORDER_STAGES, type QuoteView, STAGE_LABEL } from "@/lib/quoteTypes";
 
 const when = (iso: string) => new Date(iso).toLocaleString("sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+const day = (isoDate: string) => new Date(`${isoDate}T12:00:00`).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+
+type SupplierStatus = {
+  number: string;
+  label: string;
+  shipBy: string;
+  proposedDate?: string;
+  tracking?: string;
+  issues: { productId: string; name: string; label: string; note: string; replacement?: string; date?: string }[];
+};
+
+/** New Wave Group's side of the order: their status, proposed dates and flags PACH has to answer. */
+function SupplierBlock({ refNo, stage }: { refNo: string; stage?: string }) {
+  const [status, setStatus] = useState<SupplierStatus | null>(null);
+  const load = () =>
+    fetch(`/api/supplier/orders?ref=${refNo}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => setStatus(j.status ?? null))
+      .catch(() => {});
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when PACH moves the order
+  }, [refNo, stage]);
+  if (!status) return null;
+  const resolve = async (productId: string) => {
+    await fetch(`/api/supplier/orders/${status.number}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "resolve", productId }) });
+    void load();
+  };
+  return (
+    <div className="drawer-block">
+      <p className="drawer-label">
+        New Wave Group <span>{status.label}</span>
+      </p>
+      <p className="drawer-note">
+        Skickas senast {day(status.proposedDate ?? status.shipBy)}
+        {status.proposedDate ? " (nytt datum från leverantören)" : ""}
+        {status.tracking ? ` · spårning ${status.tracking}` : ""}
+      </p>
+      {status.issues.map((i) => (
+        <p key={i.productId} className="drawer-note po-warn">
+          <b>{i.name}: {i.label}.</b> {i.note}
+          {i.replacement ? ` Ersättare: ${i.replacement}.` : ""}
+          {i.date ? ` Klarar ${day(i.date)}.` : ""}{" "}
+          <button type="button" className="cz-link" onClick={() => void resolve(i.productId)}>
+            Markera löst
+          </button>
+        </p>
+      ))}
+      <a className="cz-link" href={`/leverantor/ordrar?open=${status.number}`}>
+        Öppna i leverantörsportalen
+      </a>
+    </div>
+  );
+}
 
 export function OrderPanel({ quote, patch }: { quote: QuoteView; patch: (ref: string, body: QuotePatch) => Promise<boolean> }) {
   const [orders, setOrders] = useState<PurchaseOrder[] | null>(null);
@@ -92,6 +146,8 @@ export function OrderPanel({ quote, patch }: { quote: QuoteView; patch: (ref: st
           </a>
         ) : null}
       </div>
+
+      <SupplierBlock refNo={quote.ref} stage={quote.order?.stage} />
 
       <div className="drawer-block">
         <p className="drawer-label">Leverans</p>
