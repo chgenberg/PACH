@@ -13,6 +13,7 @@ export function BrandingLoader({
   done,
   total,
   complete,
+  inline = false,
 }: {
   name: string;
   sub?: string;
@@ -20,6 +21,8 @@ export function BrandingLoader({
   done: number;
   total: number;
   complete: boolean;
+  /** A small floating card instead of a veil, so the page stays usable while images arrive. */
+  inline?: boolean;
 }) {
   const [start] = useState(() => Date.now());
   const [now, setNow] = useState(start);
@@ -34,6 +37,23 @@ export function BrandingLoader({
   const byWork = total ? (done / total) * 0.96 : 0;
   const progress = complete ? 1 : Math.max(byTime, byWork);
   const line = complete ? "Klart!" : stages[Math.min(stages.length - 1, Math.floor(progress * stages.length))];
+
+  if (inline) {
+    return (
+      <div className={`loader-pill${complete ? " is-done" : ""}`} role="status" aria-live="polite">
+        <span className={`loader-spin${complete ? " is-done" : ""}`} aria-hidden />
+        <div>
+          <p key={line}>{complete ? `Klart – allt har ${name}s logga` : line}</p>
+          <small>
+            {done} av {total} bilder · du kan bläddra under tiden
+          </small>
+          <div className="loader-bar">
+            <div style={{ width: `${(progress * 100).toFixed(1)}%` }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="loader-veil" role="status" aria-live="polite">

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandedPhoto } from "@/components/BrandedPhoto";
 import { useCart } from "@/components/CartProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import { families, type Family } from "@/lib/catalog";
@@ -143,7 +144,7 @@ export function StoreBuilder() {
   if (links) {
     return (
       <div className="shop">
-        <SiteHeader back={{ href: "/", label: "Till startsidan" }} />
+        <SiteHeader />
         <div className="cat sb-done">
           <div className="offer-thanks-mark" aria-hidden>
             ✓
@@ -182,7 +183,7 @@ export function StoreBuilder() {
 
   return (
     <div className="shop">
-      <SiteHeader back={{ href: "/", label: "Till startsidan" }} />
+      <SiteHeader />
       <div className="cat sb">
         <p className="kicker">Personalbutik</p>
         <h1>Låt personalen välja själv</h1>
@@ -253,12 +254,12 @@ export function StoreBuilder() {
               .filter((f) => TABS.find((t) => t.id === tab)!.test(f))
               .map((f) => {
                 const hex = picked[f.id];
-                const src = (hex && images[`${f.id}|${hex}`]) || images[`${f.id}|${BASE_COLOR}`] || f.image;
+                const src = (hex && images[`${f.id}|${hex}`]) || images[`${f.id}|${BASE_COLOR}`] || null;
                 const loading = Boolean(hex && host && !images[`${f.id}|${hex}`]);
                 return (
                   <article key={f.id} className={`sb-item${hex ? " is-on" : ""}`}>
                     <button type="button" className="sb-pick" onClick={() => toggle(f.id)} aria-pressed={Boolean(hex)}>
-                      <Image src={src} alt={f.name} width={300} height={300} unoptimized={src.startsWith("/api/")} />
+                      {src ? <Image src={src} alt={f.name} width={300} height={300} unoptimized={src.startsWith("/api/")} /> : <BrandedPhoto productId={f.id} src={f.image} alt={f.name} width={300} height={300} />}
                       {loading ? <span className="sb-busy loader-spin" aria-hidden /> : null}
                       <span className="sb-check" aria-hidden>
                         {hex ? "✓" : "+"}

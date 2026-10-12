@@ -88,6 +88,7 @@ export function Onboarding() {
   const reviewing = step >= QUESTIONS;
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- today's date must come from the browser, not the server
     setMinDate(todayIso());
   }, []);
 

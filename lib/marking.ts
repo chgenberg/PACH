@@ -148,6 +148,29 @@ export const zonesFor = (f: Family) => {
   const zones = ZONES[kindOf(f)];
   return LIES_FLAT.test(f.name) ? [Z("ovan", "Ovansidan", [0, 1, 0]), ...zones.filter((z) => z.id !== "ovan")] : zones;
 };
+type Spot = { zone: string; sizeCm: number };
+
+/** Two prints in fixed zones overlap when they face the same way and sit closer than half their widths. */
+export function zonesClash(f: Family, a: Spot, b: Spot) {
+  const zones = zonesFor(f);
+  const za = zones.find((z) => z.id === a.zone);
+  const zb = zones.find((z) => z.id === b.zone);
+  if (!za || !zb) return false;
+  if (za.id === zb.id) return true;
+  if (za.dir.some((v, i) => v !== zb.dir[i])) return false;
+  const cm = Math.hypot(za.offset[0] - zb.offset[0], za.offset[1] - zb.offset[1]) * sizeCmFor(f);
+  return cm < (a.sizeCm + b.sizeCm) / 2;
+}
+
+/** The first zone where a new print of its default size fits without touching the others. */
+export function freeZone(f: Family, placed: Spot[], prefer?: string) {
+  const zones = zonesFor(f);
+  const sizeIn = (z: Zone) => z.sizeCm ?? placed[0]?.sizeCm ?? Math.round(sizeCmFor(f) * 0.2);
+  const fits = (z: Zone) => !placed.some((p) => zonesClash(f, { zone: z.id, sizeCm: sizeIn(z) }, p));
+  const used = new Set(placed.map((p) => p.zone));
+  return zones.find((z) => z.id === prefer && fits(z)) ?? zones.find(fits) ?? zones.find((z) => !used.has(z.id)) ?? zones[0];
+}
+
 export const methodsFor = (f: Family) => METHODS_FOR[kindOf(f)];
 /** Largest real dimension in cm; the 3D models are normalised to this. */
 export const sizeCmFor = (f: Family) => (/reflex/i.test(f.name) ? 7 : SIZE_CM[kindOf(f)]);
@@ -163,6 +186,21 @@ const zoneLabel = (f: Family, id: string) => (id === "egen" ? "Egen placering" :
 function placementSummary(f: Family, d: Placement) {
   const colors = d.method === "digitaltryck" ? "fyrfärg" : d.method === "gravyr" ? "ton-i-ton" : `${colorsOf(d)} ${colorsOf(d) === 1 ? "färg" : "färger"}`;
   return [METHOD_INFO[d.method].label, colors, zoneLabel(f, d.zone), d.shape === "original" ? null : SHAPE_LABEL[d.shape], `${d.sizeCm} cm`].filter(Boolean).join(" · ");
+}
+
+/** One row per print position, for the proof page in the quote PDF. */
+export function placementRows(f: Family, d: LogoDesign) {
+  const colorText = (p: Placement) => (p.method === "digitaltryck" ? "Fyrfärg" : p.method === "gravyr" ? "Ton-i-ton" : `${colorsOf(p)} ${colorsOf(p) === 1 ? "färg" : "färger"}`);
+  const rows = [d, ...(d.extra ?? [])].map((p, i) => ({
+    label: i === 0 ? "Logga" : `Logga ${i + 1}`,
+    zone: zoneLabel(f, p.zone),
+    method: METHOD_INFO[p.method].label,
+    colors: colorText(p),
+    size: `${p.sizeCm} cm bred`,
+    shape: SHAPE_LABEL[p.shape],
+  }));
+  if (d.names?.list.length) rows.push({ label: "Namn", zone: zoneLabel(f, d.names.zone), method: "Transfer", colors: "1 färg", size: `${d.names.sizeCm} cm bred`, shape: `${d.names.list.length} namn` });
+  return rows;
 }
 
 export function designSummary(f: Family, d: LogoDesign) {

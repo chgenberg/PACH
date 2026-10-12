@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BrandingLoader } from "@/components/BrandingLoader";
 import { fmtDate } from "@/components/dashboard/useQuotes";
 import type { Demo } from "@/lib/demos";
 import { EVENTS, familiesForEvent } from "@/lib/events";
@@ -12,6 +13,8 @@ async function pool<T>(items: T[], limit: number, worker: (item: T) => Promise<v
     while (i < items.length) await worker(items[i++]);
   }));
 }
+
+const SALES_STAGES = ["Trycker miljön med prospektens logga…", "Lägger loggan på produkterna…", "Fotograferar miljöbilderna…", "Kvalitetsgranskar bilderna…", "Sista detaljerna…"];
 
 const post = (url: string, body: object) =>
   fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json().catch(() => ({})));
@@ -27,6 +30,8 @@ export default function SalesStudioPage() {
   const [link, setLink] = useState("");
   const [copied, setCopied] = useState("");
   const [demos, setDemos] = useState<Demo[] | null>(null);
+  const [brandName, setBrandName] = useState("");
+  const [complete, setComplete] = useState(false);
 
   const load = () =>
     fetch("/api/dashboard/demos", { cache: "no-store" })
@@ -61,6 +66,7 @@ export default function SalesStudioPage() {
       const items = familiesForEvent(ev.slug);
       const jobs = [{ url: "/api/scene", body: { event: ev.slug, host: h } }, ...ev.photos.map((_, index) => ({ url: "/api/photo", body: { event: ev.slug, index, host: h } })), ...items.map((f) => ({ url: "/api/generate", body: { productId: f.id, host: h } }))];
       setTotal(jobs.length);
+      setBrandName(brand.name ?? profile.name ?? h);
       setStep(`Brandar ${ev.name.toLowerCase()} och ${items.length} produkter för ${brand.name ?? h}…`);
       let n = 0;
       await pool(jobs, 6, async (j) => {
@@ -71,7 +77,10 @@ export default function SalesStudioPage() {
 
       const res = await post("/api/dashboard/demos", { host: h, brand: brand.name ?? profile.name, color: brand.color ?? profile.color, event: ev.slug, contact });
       if (res.error) throw new Error(res.error);
+      setComplete(true);
+      await new Promise((r) => setTimeout(r, 1400));
       setLink(`${window.location.origin}/demo/${res.demo.token}`);
+      setComplete(false);
       setStep("");
       void load();
     } catch (err) {
@@ -122,29 +131,29 @@ export default function SalesStudioPage() {
       </form>
       {error ? <p className="brandbar-err">{error}</p> : null}
 
-      {busy || link ? (
+      {busy ? (
+        <BrandingLoader
+          inline
+          name={brandName || normalizeHost(site)}
+          stages={total > 1 ? SALES_STAGES : ["Läser webbplatsen och verifierar loggan…"]}
+          done={done}
+          total={total}
+          complete={complete}
+        />
+      ) : null}
+
+      {link ? (
         <div className="studio-progress">
-          {busy ? (
-            <>
-              <p>{step}</p>
-              <div className="studio-bar">
-                <span style={{ width: `${total ? Math.round((done / total) * 100) : 0}%` }} />
-              </div>
-            </>
-          ) : (
-            <>
-              <p>Klart – allt är genererat och laddar direkt för prospekten.</p>
-              <div className="studio-link">
-                <code>{link.replace(/^https?:\/\//, "")}</code>
-                <button type="button" className="dash-btn" onClick={() => copy(link)}>
-                  {copied === link ? "Kopierad ✓" : "Kopiera länk"}
-                </button>
-                <a href={link} target="_blank" rel="noreferrer">
-                  Öppna som prospekten
-                </a>
-              </div>
-            </>
-          )}
+          <p>Klart – allt är genererat och laddar direkt för prospekten.</p>
+          <div className="studio-link">
+            <code>{link.replace(/^https?:\/\//, "")}</code>
+            <button type="button" className="dash-btn" onClick={() => copy(link)}>
+              {copied === link ? "Kopierad ✓" : "Kopiera länk"}
+            </button>
+            <a href={link} target="_blank" rel="noreferrer">
+              Öppna som prospekten
+            </a>
+          </div>
         </div>
       ) : null}
 

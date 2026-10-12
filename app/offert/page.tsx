@@ -3,7 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { BrandedPhoto } from "@/components/BrandedPhoto";
+import { Countdown } from "@/components/Countdown";
 import { useCart } from "@/components/CartProvider";
+import { ProofGallery } from "@/components/ProofGallery";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
@@ -44,6 +48,7 @@ export default function OfferPage() {
 
   const total = rows.reduce((sum, r) => sum + r.line.lineTotal, 0);
   const deliveries = rows.map((r) => estimate(r.family, r.item.design).date);
+  const slowestDays = Math.max(0, ...rows.map((r) => estimate(r.family, r.item.design).days));
   const lastDelivery = deliveries.reduce((a, b) => (b > a ? b : a), deliveries[0] ?? "");
   const lateCount = cart.eventDate ? deliveries.filter((d) => d > cart.eventDate).length : 0;
 
@@ -70,7 +75,7 @@ export default function OfferPage() {
           brand: cart.brand,
           company: company.trim(),
           phone: phone.trim(),
-          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image, color: i.color, design: i.design })),
+          lines: cart.items.map((i) => ({ productId: i.productId, qty: i.qty, image: i.image, color: i.color, design: i.design, proofs: i.proofs })),
         }),
       });
       if (!res.ok) {
@@ -159,7 +164,7 @@ export default function OfferPage() {
 
   return (
     <div className="shop">
-      <SiteHeader back={{ href: "/", label: "Fortsätt handla" }} />
+      <SiteHeader />
 
       <div className="cat offer">
         {sent ? (
@@ -208,6 +213,7 @@ export default function OfferPage() {
                 </p>
               )}
             </div>
+            {cart.eventDate && rows.length ? <Countdown eventDate={cart.eventDate} slowestDays={slowestDays} brand={cart.brand} host={cart.host} /> : null}
             <div className="offer-budget">
               <span>Har ni en budget?</span>
               <input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="t.ex. 50 000 kr" inputMode="numeric" aria-label="Budget i kronor" />
@@ -225,7 +231,11 @@ export default function OfferPage() {
               {rows.map(({ line, image, item, family }) => (
                 <li key={line.productId} className="offer-row">
                   <div className="offer-thumb">
-                    <Image src={image} alt={line.name} width={160} height={160} unoptimized={/^(data:|\/api\/)/.test(image)} />
+                    {image === family.image ? (
+                      <BrandedPhoto productId={family.id} src={image} alt={line.name} width={160} height={160} />
+                    ) : (
+                      <Image src={image} alt={line.name} width={160} height={160} unoptimized={/^(data:|\/api\/)/.test(image)} />
+                    )}
                   </div>
                   <div className="offer-main">
                     <strong>{line.name}</strong>
@@ -251,6 +261,20 @@ export default function OfferPage() {
                     </button>
                   </div>
                   <div className="offer-sum">{sek(line.lineTotal)}</div>
+                  {item.proofs?.length ? (
+                    <details className="offer-proofs">
+                      <summary>
+                        <span className="offer-proofs-thumbs" aria-hidden>
+                          {item.proofs.slice(0, 3).map((p, i) => (
+                            // eslint-disable-next-line @next/next/no-img-element -- data URL proof
+                            <img key={i} src={p.image} alt="" />
+                          ))}
+                        </span>
+                        3D-korrektur · {item.proofs.length} {item.proofs.length === 1 ? "vy" : "vyer"}
+                      </summary>
+                      <ProofGallery proofs={item.proofs} name={line.name} />
+                    </details>
+                  ) : null}
                 </li>
               ))}
             </ul>
@@ -322,6 +346,7 @@ export default function OfferPage() {
           </>
         )}
       </div>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type CartItem, useCart } from "@/components/CartProvider";
 import { familyById } from "@/lib/catalog";
@@ -26,10 +27,12 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
   const wanted = useRef(color);
   const [design, setDesign] = useState<LogoDesign | undefined>(line?.design);
   const [preview, setPreview] = useState<string | null>(line?.design && line.image ? line.image : null);
+  const [proofs, setProofs] = useState(line?.proofs);
   const [customizing, setCustomizing] = useState(false);
   const pickColor = (hex: string) => {
     setColor(hex);
     setPreview(null);
+    setProofs(undefined);
   };
 
   useEffect(() => {
@@ -132,7 +135,8 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
         {family.shop === "klader" && cart.host ? <TryOn productId={productId} host={cart.host} image={shots[BASE_COLOR]} color={color} /> : null}
 
         <p className="drawer-desc">
-          {family.subcategory} i {family.material.replace(/;/g, ", ").toLowerCase()}. Tryck med er logga ingår.
+          {family.subcategory} i {family.material.replace(/;/g, ", ").toLowerCase()}. Tryck med er logga ingår.{" "}
+          <Link href={`/p/${productId}`}>Öppna produktsidan →</Link>
         </p>
 
         <div className="drawer-block">
@@ -199,7 +203,7 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
             className="drawer-save"
             disabled={loading}
             onClick={() => {
-              cart.save(productId, { qty, color: color === BASE_COLOR ? undefined : color, image: preview ?? shot, design });
+              cart.save(productId, { qty, color: color === BASE_COLOR ? undefined : color, image: preview ?? shot, design, proofs });
               onClose();
             }}
           >
@@ -218,11 +222,15 @@ export function ProductDrawer({ productId, baseImage, onClose }: { productId: st
           brandColor={cart.brandColor}
           needBy={cart.eventDate}
           onClose={() => setCustomizing(false)}
+          saveLabel="Spara i offerten"
           onSave={(r) => {
+            const units = Math.max(qty, r.design.names?.list.length ?? 0);
             setDesign(r.design);
-            if (r.design.names && r.design.names.list.length > qty) setQty(r.design.names.list.length);
+            setQty(units);
             setColor(r.color);
             setPreview(r.preview || null);
+            setProofs(r.proofs.length ? r.proofs : undefined);
+            cart.save(productId, { qty: units, color: r.color === BASE_COLOR ? undefined : r.color, image: r.preview || shots[r.color], design: r.design, proofs: r.proofs.length ? r.proofs : undefined });
             setCustomizing(false);
           }}
         />

@@ -2,7 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { useCart } from "@/components/CartProvider";
+import { ProofGallery } from "@/components/ProofGallery";
 import { CollectPanel } from "@/components/dashboard/CollectPanel";
 import { OrderPanel } from "@/components/dashboard/OrderPanel";
 import { fmtDate, STATUS_LABEL, useQuotes } from "@/components/dashboard/useQuotes";
@@ -16,8 +19,23 @@ const FILTERS: ("alla" | QuoteStatus)[] = ["alla", ...QUOTE_STATUSES];
 
 export default function QuotesPage() {
   const { quotes, error, patch } = useQuotes();
+  const cart = useCart();
+  const router = useRouter();
   const [filter, setFilter] = useState<"alla" | QuoteStatus>("alla");
   const [open, setOpen] = useState<string | null>(null);
+  useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("open");
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the link from the overview names the quote to open
+    if (ref) setOpen(ref);
+  }, []);
+
+  /** Same products, designs and proofs in a new quote – for the customer who wants the same again. */
+  const reorder = (q: NonNullable<typeof quotes>[number]) => {
+    cart.clear();
+    if (q.host) cart.setBrand(q.host, q.brand ?? q.company);
+    for (const l of q.lines) cart.save(l.productId, { qty: l.qty, image: l.image, color: l.color, design: l.design, proofs: l.proofs });
+    router.push("/offert");
+  };
 
   const shown = useMemo(() => (quotes ?? []).filter((q) => filter === "alla" || q.status === filter), [quotes, filter]);
   const selected = quotes?.find((q) => q.ref === open) ?? null;
@@ -127,6 +145,17 @@ export default function QuotesPage() {
                       {selected.share?.approvals[l.productId] ? <small className="mini-ok">✓ Godkänd av {selected.share.approvals[l.productId].name}</small> : null}
                     </span>
                     <b>{sek(l.lineTotal)}</b>
+                    {stored?.proofs?.length ? (
+                      <div className="mini-proofs">
+                        <ProofGallery
+                          proofs={stored.proofs}
+                          name={l.name}
+                          pins={(selected.share?.comments ?? [])
+                            .filter((c) => c.productId === l.productId && c.pin)
+                            .map((c, i) => ({ n: i + 1, pin: c.pin!, text: c.text, by: c.name }))}
+                        />
+                      </div>
+                    ) : null}
                   </li>
                 );
               })}
@@ -177,6 +206,9 @@ export default function QuotesPage() {
             <CollectPanel key={`c${selected.ref}`} quote={selected} />
             <OrderPanel key={selected.ref} quote={selected} patch={patch} />
             <div className="drawer-foot">
+              <button type="button" className="drawer-remove" onClick={() => reorder(selected)} title="Samma produkter, design och korrektur i en ny offert">
+                Beställ igen
+              </button>
               <a className="drawer-save" href={`/api/dashboard/quotes/${selected.ref}/pdf`} target="_blank" rel="noreferrer">
                 Visa offert-PDF
               </a>

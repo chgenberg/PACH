@@ -15,20 +15,25 @@ export const STATUS_LABEL: Record<QuoteStatus, string> = { skapad: "Skapad", ski
 
 export const fmtDate = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" });
 
-export function useQuotes() {
+export function useQuotes(opts: { poll?: number } = {}) {
   const [quotes, setQuotes] = useState<QuoteView[] | null>(null);
   const [error, setError] = useState("");
+  const { poll } = opts;
 
   useEffect(() => {
     let live = true;
-    fetch("/api/dashboard/quotes", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => live && setQuotes(j.quotes ?? []))
-      .catch(() => live && setError("Kunde inte hämta offerterna."));
+    const load = () =>
+      fetch("/api/dashboard/quotes", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => live && setQuotes(j.quotes ?? []))
+        .catch(() => live && setError("Kunde inte hämta offerterna."));
+    void load();
+    const t = poll ? setInterval(load, poll) : undefined;
     return () => {
       live = false;
+      clearInterval(t);
     };
-  }, []);
+  }, [poll]);
 
   const patch = useCallback(async (ref: string, body: QuotePatch) => {
     const res = await fetch(`/api/dashboard/quotes/${ref}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

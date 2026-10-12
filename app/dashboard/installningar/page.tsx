@@ -1,11 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Brandbook, FONTS, useBrandbook } from "@/components/dashboard/brandbook";
 import { hostOk, normalizeHost } from "@/lib/host";
+import { METHOD_INFO, METHODS } from "@/lib/marking";
+import { sek } from "@/lib/pricing";
 
 export default function SettingsPage() {
   const { book, save, reset } = useBrandbook();
+  // The PDFs read the terms from the server, so the server copy wins over the one in the browser.
+  useEffect(() => {
+    let live = true;
+    fetch("/api/dashboard/terms", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j) => {
+        if (!live || !j.terms) return;
+        const t = j.terms as Brandbook["terms"];
+        if (t.validDays !== book.terms.validDays || t.paymentDays !== book.terms.paymentDays || t.vatPct !== book.terms.vatPct) save({ ...book, terms: { ...book.terms, ...t } });
+      })
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [book, save]);
   const [edits, setEdits] = useState<Brandbook | null>(null);
   const draft = edits ?? book;
   const setDraft = (fn: (d: Brandbook) => Brandbook) => setEdits((e) => fn(e ?? book));
@@ -145,15 +162,8 @@ export default function SettingsPage() {
 
       <section className="card">
         <h2>Offertvillkor</h2>
+        <p className="drawer-note">Villkoren skrivs ut på varje offert-PDF, både från sajten och härifrån.</p>
         <div className="fields">
-          <label>
-            Tryck per styck (kr)
-            <input type="number" value={draft.terms.printPerUnit} onChange={(e) => set("terms", { printPerUnit: Number(e.target.value) })} />
-          </label>
-          <label>
-            Tryckstart per produkt (kr)
-            <input type="number" value={draft.terms.setup} onChange={(e) => set("terms", { setup: Number(e.target.value) })} />
-          </label>
           <label>
             Offerten gäller (dagar)
             <input type="number" value={draft.terms.validDays} onChange={(e) => set("terms", { validDays: Number(e.target.value) })} />
@@ -167,7 +177,30 @@ export default function SettingsPage() {
             <input type="number" value={draft.terms.vatPct} onChange={(e) => set("terms", { vatPct: Number(e.target.value) })} />
           </label>
         </div>
-        <p className="drawer-note">I demon räknar offerterna fortfarande med sajtens standardpriser.</p>
+      </section>
+
+      <section className="card">
+        <h2>Prislista för märkning</h2>
+        <p className="drawer-note">Priset räknas per tryckposition och färg, med mängdrabatt från 100 st. Så räknar både sajten och offerterna.</p>
+        <div className="price-list">
+          <div className="price-row th">
+            <span>Metod</span>
+            <span>Per färg och styck</span>
+            <span>Start per färg</span>
+            <span>Färger</span>
+          </div>
+          {METHODS.map((m) => (
+            <div key={m} className="price-row">
+              <span>
+                <b>{METHOD_INFO[m].label}</b>
+                <small>{METHOD_INFO[m].blurb}</small>
+              </span>
+              <span>{sek(METHOD_INFO[m].unitPerColor)}</span>
+              <span>{sek(METHOD_INFO[m].setupPerColor)}</span>
+              <span>{METHOD_INFO[m].fixedColors ? (m === "gravyr" ? "ton-i-ton" : "fyrfärg") : `1–${METHOD_INFO[m].maxColors}`}</span>
+            </div>
+          ))}
+        </div>
       </section>
 
       <div className="save-bar">
@@ -190,7 +223,10 @@ export default function SettingsPage() {
           onClick={() => {
             save(draft);
             setEdits(null);
-            setMsg("Sparat.");
+            const { validDays, paymentDays, vatPct } = draft.terms;
+            void fetch("/api/dashboard/terms", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ validDays, paymentDays, vatPct }) })
+              .then((r) => setMsg(r.ok ? "Sparat. Nya offerter får villkoren direkt." : "Brandbooken sparades, men inte villkoren."))
+              .catch(() => setMsg("Brandbooken sparades, men inte villkoren."));
           }}
         >
           Spara

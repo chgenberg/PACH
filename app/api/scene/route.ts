@@ -15,7 +15,7 @@ export const maxDuration = 300;
 export async function POST(req: Request) {
   if (!hasOpenAIKey()) return NextResponse.json({ error: "OpenAI-nyckel saknas" }, { status: 503 });
 
-  const body = (await req.json().catch(() => ({}))) as { event?: string; host?: string };
+  const body = (await req.json().catch(() => ({}))) as { event?: string; host?: string; cachedOnly?: boolean };
   const ev = body.event === "hero" ? { slug: "hero", scene: "/scenes/hero.jpg" } : body.event ? eventOf(body.event) : null;
   if (!ev) return NextResponse.json({ error: "Händelsen hittades inte" }, { status: 404 });
   if (!body.host) return NextResponse.json({ error: "Ange en webbadress" }, { status: 400 });
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     const id = cacheKey("scene-v3", normalizeHost(body.host), String(await brandRev(normalizeHost(body.host))), ev.slug);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ image: hit, cached: true });
+    if (body.cachedOnly) return NextResponse.json({ image: null });
 
     const { profile, logo, analysis } = await loadBrand(body.host);
     const scene = await readFile(path.join(process.cwd(), "public", ev.scene));

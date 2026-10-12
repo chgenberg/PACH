@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "OpenAI-nyckel saknas" }, { status: 503 });
   }
 
-  let body: { productId?: string; host?: string };
+  let body: { productId?: string; host?: string; cachedOnly?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -35,6 +35,7 @@ export async function POST(req: Request) {
     const id = cacheKey("product-v3", normalizeHost(body.host), String(await brandRev(normalizeHost(body.host))), family.id);
     const hit = await cachedUrl(id);
     if (hit) return NextResponse.json({ productId: family.id, name: family.name, image: hit, cached: true });
+    if (body.cachedOnly) return NextResponse.json({ productId: family.id, image: null });
 
     const { logo } = await loadBrand(body.host);
     const productPhoto = await readFile(path.join(process.cwd(), "public", family.image));

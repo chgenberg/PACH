@@ -1,42 +1,38 @@
 import { notFound } from "next/navigation";
-import { CategoryShop, type ShopItem } from "@/components/CategoryShop";
+import { CategoryShop } from "@/components/CategoryShop";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { familiesIn, fromPrice } from "@/lib/catalog";
-import { SHOPS, shopOf } from "@/lib/shop";
+import { ASSORTMENT, assortmentOf } from "@/lib/assortment";
+import { familiesForAssortment } from "@/lib/catalog";
+import { toShopItem } from "@/lib/shopItem";
 
 export function generateStaticParams() {
-  return SHOPS.map((item) => ({ slug: item.slug }));
+  return ASSORTMENT.map((item) => ({ slug: item.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
-  const shop = shopOf((await params).slug);
+  const shop = assortmentOf((await params).slug);
   return { title: shop ? `${shop.name} – PACH` : "PACH" };
 }
 
 export default async function CategoryPage({ params }: { params: Promise<{ slug: string }> }) {
-  const shop = shopOf((await params).slug);
+  const shop = assortmentOf((await params).slug);
   if (!shop) notFound();
-  const items: ShopItem[] = familiesIn(shop.slug).map((item) => ({
-    id: item.id,
-    name: item.name,
-    subcategory: item.subcategory,
-    image: item.image,
-    from: item.variants[0] ? Math.round(fromPrice(item)) : 0,
-    colors: item.variants.slice(0, 3).map((v) => v.colorHex),
-  }));
+  const items = familiesForAssortment(shop.slug).map(toShopItem);
 
   return (
     <div className="shop">
-      <SiteHeader back={{ href: "/", label: "Tillbaka" }} />
+      <SiteHeader />
       <CategoryShop
         slug={shop.slug}
         name={shop.name}
         hint={shop.hint}
-        tone={shop.tone}
         scene="/scenes/hero.jpg"
+        sceneEvent="hero"
         stages={["Lägger er logga på produkterna…", "Kvalitetsgranskar bilderna…", "Sista detaljerna…"]}
         items={items}
       />
+      <SiteFooter />
     </div>
   );
 }

@@ -2,24 +2,19 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
 import { DEMO_GREETING } from "@/components/DemoStart";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Packages } from "@/components/Packages";
 import { ProductDrawer } from "@/components/ProductDrawer";
 import { isEventId } from "@/lib/eventAgent";
 import { hostOk, isBrandbookHost, normalizeHost } from "@/lib/host";
 import { PRINT_PER_UNIT, sek } from "@/lib/pricing";
+import type { ShopItem } from "@/lib/shopItem";
 
-export type ShopItem = {
-  id: string;
-  name: string;
-  subcategory: string;
-  image: string;
-  from: number;
-  colors: string[];
-};
+export type { ShopItem };
 
 type Run = { name: string; done: number; total: number; complete: boolean };
 
@@ -48,22 +43,24 @@ export function CategoryShop({
   slug,
   name,
   hint,
-  tone,
   scene,
   stages,
   photos = [],
   items,
+  sceneEvent,
 }: {
   slug: string;
   name: string;
   hint: string;
-  tone: string;
   scene: string;
   stages: string[];
   photos?: LifestylePhoto[];
   items: ShopItem[];
+  /** Which branded scene to ask for when the page is not an event, e.g. "hero" for categories. */
+  sceneEvent?: string;
 }) {
   const cart = useCart();
+  const { setImage } = cart;
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -118,36 +115,35 @@ export function CategoryShop({
         setRun((r) => (r ? { ...r, done } : r));
       };
       setRun({ name: company, done: 0, total: items.length + photos.length + 1, complete: false });
-      const found: Record<string, string> = {};
-      let branded: string | null = null;
-      const [shots] = await Promise.all([
+      setImages({});
+      setSceneSrc(null);
+      setLifestyle([]);
+      await Promise.all([
         Promise.all(
           photos.map((_, index) =>
             postImage("/api/photo", { event: slug, index, host }).then((img) => {
               tick();
-              return img;
+              setLifestyle((l) => Object.assign([...l], { [index]: img }));
             }),
           ),
         ),
-        postImage("/api/scene", { event: slug, host }).then((img) => {
-          branded = img;
+        postImage("/api/scene", { event: sceneEvent ?? slug, host }).then((img) => {
           tick();
+          if (img) setSceneSrc(img);
         }),
         pool(items, 6, async (it) => {
           const img = await postImage("/api/generate", { productId: it.id, host });
-          if (img) found[it.id] = img;
           tick();
+          if (!img) return;
+          setImages((m) => ({ ...m, [it.id]: img }));
+          setImage(it.id, img);
         }),
       ]);
       setRun((r) => (r ? { ...r, complete: true } : r));
-      await new Promise((r) => setTimeout(r, 900));
-      setSceneSrc(branded);
-      setImages(found);
-      setLifestyle(shots);
-      for (const [id, img] of Object.entries(found)) cart.setImage(id, img);
+      await new Promise((r) => setTimeout(r, 2400));
       setRun(null);
     },
-    [items, photos, slug, cart],
+    [items, photos, slug, sceneEvent, setImage],
   );
 
   useEffect(() => {
@@ -182,6 +178,40 @@ export function CategoryShop({
   };
 
   const branded = Boolean(cart.host);
+  const [sub, setSub] = useState("alla");
+  const [color, setColor] = useState("alla");
+  const [brand, setBrand] = useState("alla");
+  const [method, setMethod] = useState("alla");
+  const [sort, setSort] = useState<"nyast" | "az" | "pris">("nyast");
+
+  const subs = useMemo(() => [...new Set(items.map((i) => i.subcategory))].sort((a, b) => a.localeCompare(b, "sv")), [items]);
+  const brands = useMemo(() => [...new Set(items.map((i) => i.brand).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "sv")), [items]);
+  const methods = useMemo(() => [...new Set(items.flatMap((i) => i.methods ?? []))].sort((a, b) => a.localeCompare(b, "sv")), [items]);
+  const colorOpts = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const item of items) {
+      item.colorNames?.forEach((name, i) => {
+        if (!seen.has(name)) seen.set(name, item.colors[i] ?? item.colors[0] ?? "#111");
+      });
+    }
+    return [...seen.entries()];
+  }, [items]);
+
+  const shown = useMemo(() => {
+    const next = items.filter((item) => {
+      if (sub !== "alla" && item.subcategory !== sub) return false;
+      if (brand !== "alla" && item.brand !== brand) return false;
+      if (method !== "alla" && !(item.methods ?? []).includes(method)) return false;
+      if (color !== "alla" && !(item.colorNames ?? []).includes(color)) return false;
+      return true;
+    });
+    next.sort((a, b) => {
+      if (sort === "az") return a.name.localeCompare(b.name, "sv");
+      if (sort === "pris") return a.from - b.from;
+      return b.id.localeCompare(a.id);
+    });
+    return next;
+  }, [items, sub, brand, method, color, sort]);
 
   return (
     <div className="cat">
@@ -257,7 +287,7 @@ export function CategoryShop({
         </div>
       </section>
 
-      {ideas.for === cart.host && ideas.list.length && !run ? (
+      {ideas.for === cart.host && ideas.list.length ? (
         <section className="ideas">
           <h2>Utvalt för {cart.brand || cart.host}</h2>
           <p className="drawer-note">Vår agent har läst på om er verksamhet och valt det som passar er bäst.</p>
@@ -283,9 +313,68 @@ export function CategoryShop({
 
       {isEventId(slug) ? <Packages event={slug} images={images} /> : null}
 
-      <h2 className="goods-title">Alla produkter</h2>
+      <div className="goods-head">
+        <h2 className="goods-title">Alla produkter</h2>
+        <p className="goods-count">{shown.length} av {items.length}</p>
+      </div>
+      <div className="filters">
+        <label>
+          <span>Kategori</span>
+          <select value={sub} onChange={(e) => setSub(e.target.value)}>
+            <option value="alla">Alla kategorier</option>
+            {subs.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Färg</span>
+          <select value={color} onChange={(e) => setColor(e.target.value)}>
+            <option value="alla">Alla färger</option>
+            {colorOpts.map(([name]) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {brands.length > 1 ? (
+          <label>
+            <span>Varumärke</span>
+            <select value={brand} onChange={(e) => setBrand(e.target.value)}>
+              <option value="alla">Alla varumärken</option>
+              {brands.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <label>
+          <span>Märkning</span>
+          <select value={method} onChange={(e) => setMethod(e.target.value)}>
+            <option value="alla">Alla metoder</option>
+            {methods.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>Sorterat på</span>
+          <select value={sort} onChange={(e) => setSort(e.target.value as typeof sort)}>
+            <option value="nyast">Nyast</option>
+            <option value="az">A–Ö</option>
+            <option value="pris">Pris</option>
+          </select>
+        </label>
+      </div>
       <ul className="goods">
-        {items.map((item, index) => {
+        {shown.map((item, index) => {
           const line = cart.itemOf(item.id);
           const brandedImage = images[item.id];
           const src = (line?.color && line.image) || brandedImage || item.image;
@@ -312,8 +401,11 @@ export function CategoryShop({
                 </li>
               ) : null}
             <li className={`good${inCart ? " picked" : ""}`}>
-              <div className="good-photo" style={{ background: tone }}>
-                <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={src.startsWith("/api/")} />
+              <div className="good-photo">
+                <Link href={`/p/${item.id}`}>
+                  <Image key={src} src={src} alt={item.name} width={760} height={760} sizes="(max-width: 860px) 100vw, 240px" unoptimized={src.startsWith("/api/")} />
+                </Link>
+                <FavoriteButton id={item.id} name={item.name} compact />
                 {!inCart ? (
                   <button type="button" className="good-add" aria-label={`Lägg till ${item.name}`} onClick={() => setOpen(item.id)}>
                     +
@@ -329,9 +421,11 @@ export function CategoryShop({
                   ))}
                 </span>
               </div>
-              <strong>{item.name}</strong>
+              <Link href={`/p/${item.id}`} className="good-name">
+                <strong>{item.name}</strong>
+              </Link>
               <span>{item.subcategory}</span>
-              <em>från {item.from} kr{branded ? " + tryck" : ""}</em>
+              <em>Från {sek(item.from)} exkl. moms · inkl. tryck</em>
 
               {inCart ? (
                 <div className="stepper" role="group" aria-label={`Antal ${item.name}`}>
@@ -358,6 +452,15 @@ export function CategoryShop({
         })}
       </ul>
 
+      <Link href="/butik/skapa" className="staff-teaser shop-inline">
+        <div>
+          <p className="kicker">Personalbutik</p>
+          <h2>Låt personalen välja själv</h2>
+          <p>Ni sätter sortiment och budget. Var och en väljer, med er logga.</p>
+          <span className="staff-cta">Sätt ihop er butik →</span>
+        </div>
+      </Link>
+
       {cart.count > 0 ? (
         <div className="cartbar">
           <span>
@@ -371,7 +474,7 @@ export function CategoryShop({
 
       {open ? <ProductDrawer key={open} productId={open} baseImage={images[open] ?? items.find((i) => i.id === open)?.image ?? ""} onClose={() => setOpen(null)} /> : null}
 
-      {run ? <BrandingLoader name={run.name} stages={stages} done={run.done} total={run.total} complete={run.complete} /> : null}
+      {run ? <BrandingLoader inline name={run.name} stages={stages} done={run.done} total={run.total} complete={run.complete} /> : null}
     </div>
   );
 }

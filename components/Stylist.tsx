@@ -75,7 +75,7 @@ export function Stylist() {
     <>
       {!open ? (
         <button type="button" className="stylist-fab" onClick={() => setOpen(true)} aria-label="Fråga merch-stylisten">
-          <span aria-hidden>✦</span> Stylist
+          <span aria-hidden>✦</span> <span className="stylist-fab-text">Stylist</span>
         </button>
       ) : (
         <section className="stylist" role="dialog" aria-label="Merch-stylist">

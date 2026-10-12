@@ -24,6 +24,22 @@ export function addWorkdays(from: Date, days: number) {
   return d;
 }
 
+export function subWorkdays(from: Date, days: number) {
+  const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
+  let left = days;
+  while (left > 0) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    const wd = d.getUTCDay();
+    if (wd !== 0 && wd !== 6) left--;
+  }
+  return d;
+}
+
+/** The last day an order can be approved and still arrive before the event – the slowest line decides. */
+export function orderByDate(eventDate: string, slowestDays: number) {
+  return iso(subWorkdays(new Date(`${eventDate}T12:00:00Z`), slowestDays));
+}
+
 export function workdays(d: LogoDesign | undefined, method: Method, names = false) {
   const extra = d?.extra?.length ? 1 : 0;
   return PROOF_DAYS + PRODUCTION_DAYS[method] + SHIPPING_DAYS + extra + (names ? NAMES_DAYS : 0);
@@ -49,5 +65,8 @@ export function fasterOption(f: Family, d: LogoDesign | undefined, needBy: strin
   return options[0] ?? null;
 }
 
-export const fmtDay = (isoDate: string) => new Date(`${isoDate}T12:00:00Z`).toLocaleDateString("sv-SE", { weekday: "short", day: "numeric", month: "short" });
+export const fmtDay = (isoDate: string) =>
+  new Date(`${isoDate}T12:00:00Z`)
+    .toLocaleDateString("sv-SE", { weekday: "short", day: "numeric", month: "short" })
+    .replace(/\.$/, "");
 export const methodLabel = (m: Method) => METHOD_INFO[m].label;

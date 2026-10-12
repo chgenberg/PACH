@@ -12,6 +12,8 @@ export type CartItem = {
   color?: string;
   /** Anpassad logga: märkmetod, färger, form, placering och storlek. */
   design?: LogoDesign;
+  /** 3D-korrektur: en bild per tryckposition från editorn. */
+  proofs?: { label: string; image: string }[];
 };
 
 type CartState = {
@@ -56,6 +58,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const p = JSON.parse(raw) as Persisted;
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
         setItems(Array.isArray(p.items) ? p.items : []);
         setHost(p.host ?? "");
         setBrandName(p.brand ?? "");

@@ -3,20 +3,60 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { AssortmentGrid } from "@/components/AssortmentGrid";
 import { BrandConfirm } from "@/components/BrandConfirm";
 import { BrandingLoader } from "@/components/BrandingLoader";
 import { useCart } from "@/components/CartProvider";
+import { HeroCarousel, type Slide } from "@/components/HeroCarousel";
+import { LifeFrames, type Frame } from "@/components/LifeFrames";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { useBrandedScene } from "@/lib/brandedImage";
 import { familyById } from "@/lib/catalog";
 import { EVENTS } from "@/lib/events";
 import { hostOk, normalizeHost } from "@/lib/host";
 
-const EXAMPLES = [
-  { label: "Volvo", host: "volvocars.com" },
-  { label: "IKEA", host: "ikea.com" },
-  { label: "Spotify", host: "spotify.com" },
+const HERO_SLIDES: Slide[] = [
+  { src: "/lifestyle/stockholm.jpg", place: "Gamla stan, Stockholm", product: "Paraply Storm", href: "/p/DEMO-P029" },
+  { src: "/lifestyle/skog.jpg", place: "Tyresta, morgon", product: "Hoodie Urban", href: "/p/DEMO-P004" },
+  { src: "/lifestyle/skargard.jpg", place: "Skärgården, juli", product: "Keps Six", href: "/p/DEMO-P011" },
+  { src: "/lifestyle/massa.jpg", place: "Mässan, Älvsjö", product: "Mässpaketet", href: "/handelse/massa" },
 ];
+
+const LIFE_FRAMES: Frame[] = [
+  { src: "/lifestyle/team.jpg", title: "Kick-off vid sjön", text: "Samma hoodie, samma logga – hela laget.", href: "/handelse/kickoff", cta: "Planera kick-off" },
+  { src: "/lifestyle/kontor.jpg", title: "Varje morgon på kontoret", text: "Mugg och block som står kvar på skrivbordet.", href: "/kategori/kontor", cta: "Kontor" },
+  { src: "/lifestyle/vinter.jpg", title: "Julklappen som används", text: "Mössa och termos genom hela vintern.", href: "/handelse/julklapp", cta: "Julgåvor" },
+];
+
+const HOW_STEPS = [
+  { title: "Skriv in er webbadress", text: "Eller ladda upp er brandbook. Vi hämtar logga, färger och typsnitt automatiskt." },
+  { title: "Se allt med er logga", text: "Hela eventet och varje produkt visas med just er logga – mässan, kick-offen eller julklappen." },
+  { title: "Anpassa i 3D", text: "Flytta loggan, välj märkmetod, färg och antal. Priset och leveransdatumet räknas direkt." },
+  { title: "Godkänn och klart", text: "Ni får en offert med 3D-korrektur att dela med teamet. Först när ni godkänner blir det en order." },
+];
+
+function PickerScene({ event, fallback, host }: { event: string; fallback: string; host: string }) {
+  const src = useBrandedScene(event, host, fallback);
+  return <Image src={src} alt="" width={480} height={320} sizes="(max-width: 860px) 45vw, 260px" unoptimized={src.startsWith("/api/")} />;
+}
+
+function EventTile({ slug, name, hint, scene, host }: { slug: string; name: string; hint: string; scene: string; host: string }) {
+  const src = useBrandedScene(slug, host, scene);
+  return (
+    <Link href={`/handelse/${slug}`} className={`tile tile-${slug}`}>
+      <Image key={src} className="tile-photo" src={src} alt="" width={1536} height={1024} sizes={slug === "massa" ? "(max-width: 860px) 100vw, 66vw" : "(max-width: 860px) 100vw, 33vw"} unoptimized={src.startsWith("/api/")} />
+      <span className="tile-text">
+        <span className="tile-name">{name}</span>
+        <small>{hint}</small>
+      </span>
+      <span className="tile-go" aria-hidden>
+        →
+      </span>
+    </Link>
+  );
+}
 
 export function HomeStudio() {
   const cart = useCart();
@@ -25,21 +65,20 @@ export function HomeStudio() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [picking, setPicking] = useState(false);
+  const [how, setHow] = useState(false);
   const [confirmHost, setConfirmHost] = useState<string | null>(null);
-  const reset = useRef(false);
+  const returning = cart.ready && Boolean(cart.host && cart.brand);
 
   useEffect(() => {
-    if (!cart.ready || reset.current) return;
-    reset.current = true;
-    cart.clear();
-  }, [cart]);
-
-  useEffect(() => {
-    if (!picking) return;
-    const close = (e: KeyboardEvent) => e.key === "Escape" && setPicking(false);
+    if (!picking && !how) return;
+    const close = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setPicking(false);
+      setHow(false);
+    };
     window.addEventListener("keydown", close);
     return () => window.removeEventListener("keydown", close);
-  }, [picking]);
+  }, [picking, how]);
 
   const start = async (raw: string) => {
     const host = normalizeHost(raw);
@@ -99,7 +138,7 @@ export function HomeStudio() {
       <SiteHeader />
 
       <section
-        className="cta"
+        className="hero"
         onDragOver={(e) => {
           if (![...e.dataTransfer.types].includes("Files")) return;
           e.preventDefault();
@@ -113,9 +152,44 @@ export function HomeStudio() {
           void readBook(e.dataTransfer.files);
         }}
       >
+        <div className="cta hero-copy">
         <p className="kicker">Profilprodukter med er logga</p>
         <h1>Er logga. På allt.</h1>
-        <p className="lede">Skriv in er webbadress så visar vi hela eventet och varje produkt med er logga – innan ni beställer.</p>
+        <p className="lede">
+          Se er logga på allt – innan ni beställer.{" "}
+          <button type="button" className="hero-more" onClick={() => setHow(true)}>
+            Läs mer
+          </button>
+        </p>
+        {returning ? (
+          <div className="cta-back">
+            <span className="cta-back-logo">
+              {/* eslint-disable-next-line @next/next/no-img-element -- brand logo from the API */}
+              <img src={`/api/brand-logo?host=${encodeURIComponent(cart.host)}`} alt="" />
+            </span>
+            <div className="cta-back-text">
+              <b>Välkommen tillbaka, {cart.brand}</b>
+              <small>{cart.count ? `${cart.count} ${cart.count === 1 ? "produkt" : "produkter"} i offerten` : "Er logga ligger redo på alla produkter"}</small>
+            </div>
+            <div className="cta-back-actions">
+              <button type="button" className="drawer-save" onClick={() => setPicking(true)}>
+                Fortsätt planera
+              </button>
+              {cart.count ? (
+                <Link href="/offert" className="cta-back-quote">
+                  Offerten ({cart.count})
+                </Link>
+              ) : null}
+              <Link href={`/for/${encodeURIComponent(cart.host)}`} className="cta-back-quote">
+                Er kampanjsida
+              </Link>
+              <button type="button" className="cz-link" onClick={() => cart.clear()}>
+                Byt företag
+              </button>
+            </div>
+          </div>
+        ) : (
+        <>
         <form
           className="cta-form"
           onSubmit={(e) => {
@@ -140,25 +214,7 @@ export function HomeStudio() {
             {busy ? "Hämtar logga…" : "Starta"}
           </button>
         </form>
-        {error ? (
-          <p className="brandbar-err">{error}</p>
-        ) : (
-          <p className="cta-try">
-            eller testa:{" "}
-            {EXAMPLES.map((ex) => (
-              <button
-                key={ex.host}
-                type="button"
-                onClick={() => {
-                  setUrl(ex.host);
-                  void start(ex.host);
-                }}
-              >
-                {ex.label}
-              </button>
-            ))}
-          </p>
-        )}
+        {error ? <p className="brandbar-err">{error}</p> : null}
         <div className="cta-or">
           <span>eller</span>
         </div>
@@ -180,19 +236,21 @@ export function HomeStudio() {
             <small>PDF eller bilder av sidorna – vi läser logga, färger och typsnitt därifrån</small>
           </span>
         </label>
+        </>
+        )}
+        </div>
+        <HeroCarousel slides={HERO_SLIDES} />
       </section>
+
+      <AssortmentGrid />
+
+      <LifeFrames kicker="I verkligheten" title="Merch som följer med ut" frames={LIFE_FRAMES} />
 
       <h2 className="mosaic-title">Välj en händelse</h2>
       <div className="mosaic">
-        {EVENTS.map((ev) => {
-          const src = familyById(ev.hero)?.image;
-          return (
-            <Link key={ev.slug} href={`/handelse/${ev.slug}`} className={`tile tile-${ev.slug}`} style={{ background: ev.tone, color: ev.ink }}>
-              {src ? <Image className="tile-photo" src={src} alt="" width={900} height={900} sizes="(max-width: 860px) 100vw, 45vw" /> : null}
-              <span className="tile-name">{ev.name}</span>
-            </Link>
-          );
-        })}
+        {EVENTS.map((ev) => (
+          <EventTile key={ev.slug} slug={ev.slug} name={ev.name} hint={ev.hint} scene={ev.scene} host={cart.ready ? cart.host : ""} />
+        ))}
       </div>
 
       <Link href="/butik/skapa" className="staff-teaser">
@@ -210,6 +268,44 @@ export function HomeStudio() {
         </div>
       </Link>
 
+      {how ? (
+        <div className="picker-veil" onClick={() => setHow(false)}>
+          <div className="picker how" role="dialog" aria-modal="true" aria-labelledby="how-title" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="picker-close" onClick={() => setHow(false)} aria-label="Stäng">
+              ×
+            </button>
+            <p className="kicker">Så funkar det</p>
+            <h2 id="how-title">Från webbadress till färdig merch</h2>
+            <ol className="how-steps">
+              {HOW_STEPS.map((s, i) => (
+                <li key={s.title}>
+                  <span className="how-n">{i + 1}</span>
+                  <div>
+                    <b>{s.title}</b>
+                    <p>{s.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <ul className="how-promise">
+              <li>Skriftlig offert</li>
+              <li>3D-korrektur före tryck</li>
+              <li>Inget är bindande förrän ni godkänt</li>
+            </ul>
+            <button
+              type="button"
+              className="drawer-save how-go"
+              onClick={() => {
+                setHow(false);
+                requestAnimationFrame(() => document.querySelector<HTMLInputElement>(".cta-form input")?.focus());
+              }}
+            >
+              Kom igång
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       {picking ? (
         <div className="picker-veil" onClick={() => setPicking(false)}>
           <div className="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" onClick={(e) => e.stopPropagation()}>
@@ -222,7 +318,7 @@ export function HomeStudio() {
             <div className="picker-grid">
               {EVENTS.map((ev) => (
                 <button key={ev.slug} type="button" className="picker-card" onClick={() => router.push(`/handelse/${ev.slug}`)}>
-                  <Image src={ev.scene} alt="" width={480} height={320} sizes="(max-width: 860px) 45vw, 260px" />
+                  <PickerScene event={ev.slug} fallback={ev.scene} host={cart.host} />
                   <strong>{ev.name}</strong>
                   <span>{ev.hint}</span>
                 </button>
@@ -259,6 +355,8 @@ export function HomeStudio() {
           complete={reading.complete}
         />
       ) : null}
+
+      <SiteFooter />
     </div>
   );
 }

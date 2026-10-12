@@ -13,7 +13,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ token: string 
 export async function POST(req: Request, ctx: { params: Promise<{ token: string }> }) {
   const { token } = await ctx.params;
   const body = (await req.json().catch(() => ({}))) as ShareAction;
-  if (!["approve", "unapprove", "comment"].includes(body.action)) return NextResponse.json({ error: "Okänd åtgärd" }, { status: 400 });
+  if (!["approve", "unapprove", "comment", "approveAll"].includes(body.action)) return NextResponse.json({ error: "Okänd åtgärd" }, { status: 400 });
   const res = await applyShareAction(token, body);
   if (res.error) return NextResponse.json({ error: res.error }, { status: res.error === "Länken är inte giltig" ? 404 : 400 });
   return NextResponse.json({ quote: res.quote });

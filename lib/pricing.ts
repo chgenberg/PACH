@@ -56,3 +56,16 @@ export function priceQuote(input: { productId: string; qty: number; design?: unk
 
 export const sek = (n: number) =>
   `${Math.round(n).toLocaleString("sv-SE").replace(/\u00a0/g, " ")} kr`;
+
+const LADDER = [25, 50, 100, 250];
+
+/** Four quantity breaks, never below the product MOQ. */
+export function qtySteps(family: Family) {
+  const moq = Math.min(...family.variants.map((v) => v.moq));
+  const steps = LADDER.map((n) => Math.max(moq, n));
+  return [...new Set(steps)].slice(0, 4);
+}
+
+export function priceMatrix(family: Family, design?: LogoDesign) {
+  return qtySteps(family).map((qty) => priceLine(family, qty, design));
+}

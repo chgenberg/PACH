@@ -3,6 +3,7 @@ import { quotePdf, type QuoteInput } from "@/lib/quotePdf";
 import { createQuote } from "@/lib/quotes";
 import { familyById } from "@/lib/catalog";
 import { sanitizeDesign } from "@/lib/marking";
+import { sanitizeProofs } from "@/lib/quoteTypes";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
   try {
     const lines = body.lines.map((l) => {
       const family = familyById(l.productId);
-      return { productId: l.productId, qty: l.qty, image: l.image, color: l.color, design: family ? sanitizeDesign(family, l.design) : undefined };
+      return { productId: l.productId, qty: l.qty, image: l.image, color: l.color, design: family ? sanitizeDesign(family, l.design) : undefined, proofs: sanitizeProofs(l.proofs) };
     });
     const eventDate = typeof body.eventDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.eventDate) ? body.eventDate : undefined;
     const saved = await createQuote({ company: body.company.trim(), phone: body.phone ?? "", brand: body.brand, host: body.host, eventDate, lines });

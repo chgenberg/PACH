@@ -2,10 +2,13 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { fmtDay } from "@/lib/delivery";
 import { sek } from "@/lib/pricing";
-import { ORDER_STAGES, STAGE_LABEL } from "@/lib/quoteTypes";
+import { Countdown } from "@/components/Countdown";
+import { ProofGallery } from "@/components/ProofGallery";
+import { ORDER_STAGES, type ProofPin, STAGE_LABEL } from "@/lib/quoteTypes";
 import type { PublicQuote } from "@/lib/share";
 
 const NAME_KEY = "pach.reviewer";
@@ -21,6 +24,8 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [pending, setPending] = useState<{ productId: string; pin: ProofPin } | null>(null);
+  const [pinText, setPinText] = useState("");
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- read once from localStorage after hydration
@@ -34,7 +39,7 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
     return () => clearInterval(t);
   }, [token]);
 
-  const act = async (key: string, body: Record<string, string | undefined>) => {
+  const act = async (key: string, body: Record<string, unknown>) => {
     if (!name.trim()) {
       setError("Skriv ditt namn först, så ser teamet vem som tyckt vad.");
       document.getElementById("share-name")?.focus();
@@ -71,10 +76,14 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
     <div className="shop">
       <SiteHeader />
       <div className="cat offer share">
-        <p className="kicker">Offert {quote.ref} · för granskning</p>
+        <p className="kicker">
+          Offert {quote.ref} · {inProduction ? "godkänd" : "för granskning"}
+        </p>
         <h1>{quote.brand ? `Merch för ${quote.brand}` : `Offert till ${quote.company}`}</h1>
         <p className="lede">
-          Titta igenom produkterna, kommentera och godkänn rad för rad. När alla rader är godkända går offerten vidare till produktion.
+          {inProduction
+            ? "Tack! Offert och 3D-korrektur är godkända. Här följer ni ordern hela vägen till leverans."
+            : "Titta på 3D-korrekturet, kommentera direkt på bilden och godkänn. Ordern binds när ni godkänner offert och korrektur – inte förr."}
         </p>
 
         {quote.order ? (
@@ -100,8 +109,8 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
               <div className="share-photos">
                 {quote.order.history
                   .filter((h) => h.photo || h.note)
-                  .map((h) => (
-                    <figure key={h.at}>
+                  .map((h, i) => (
+                    <figure key={`${h.at}-${i}`}>
                       {/* eslint-disable-next-line @next/next/no-img-element -- photo from the print shop */}
                       {h.photo ? <img src={h.photo} alt={STAGE_LABEL[h.stage]} /> : null}
                       <figcaption>
@@ -114,14 +123,25 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
           </section>
         ) : null}
 
+        {quote.eventDate && !inProduction ? <Countdown eventDate={quote.eventDate} slowestDays={Math.max(0, ...quote.lines.map((l) => l.deliveryDays))} remind={false} /> : null}
+
         <div className={`share-status${allApproved ? " done" : ""}`}>
           <div className="share-progress" aria-hidden>
             <span style={{ width: `${(approved / Math.max(1, quote.lines.length)) * 100}%` }} />
           </div>
           <p>
-            {quote.order ? "Offerten är godkänd och i produktion." : allApproved ? "Offerten är godkänd – vi återkommer med korrektur." : `${approved} av ${quote.lines.length} rader godkända`}
+            {quote.order
+              ? "Offert och 3D-korrektur är godkända."
+              : allApproved
+                ? "Offert och 3D-korrektur är godkända. Vi sätter igång produktionen."
+                : `${approved} av ${quote.lines.length} rader godkända`}
             {quote.eventDate ? ` · behövs ${fmtDay(quote.eventDate)}${late ? ` (${late} hinner inte)` : ""}` : ""}
           </p>
+          {!inProduction && !allApproved ? (
+            <button type="button" className="share-approve-btn" disabled={Boolean(busy)} onClick={() => void act("all", { action: "approveAll" })}>
+              {busy === "all" ? "…" : "Godkänn offert och 3D-korrektur"}
+            </button>
+          ) : null}
           <button
             type="button"
             className="share-copy"
@@ -153,7 +173,7 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
                   <span>
                     {l.qty} st · {l.spec}
                   </span>
-                  {l.design ? <span>{l.design}</span> : null}
+                  {l.design ? <span className="share-proof">3D-korrektur: {l.design}</span> : <span className="share-proof">Standardplacering – vi ritar korrektur om ni inte anpassat i 3D.</span>}
                   <small>
                     {sek(l.unitInclPrint)}/st inkl. tryck{l.delivery ? ` · leverans ca ${fmtDay(l.delivery)}` : ""}
                   </small>
@@ -196,6 +216,44 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
                   )}
                 </div>
                 <div className="offer-sum">{sek(l.lineTotal)}</div>
+                {l.proofs.length ? (
+                  <div className="share-proofs">
+                    <ProofGallery
+                      proofs={l.proofs}
+                      name={l.name}
+                      pins={notes.flatMap((c) => (c.pin ? [c] : [])).map((c, i) => ({ n: i + 1, pin: c.pin!, text: c.text, by: c.name }))}
+                      pending={pending?.productId === l.productId ? pending.pin : null}
+                      onPin={inProduction ? undefined : (pin) => {
+                        setPending({ productId: l.productId, pin });
+                        requestAnimationFrame(() => document.getElementById(`pin-${l.productId}`)?.focus());
+                      }}
+                    />
+                    {pending?.productId === l.productId ? (
+                      <form
+                        className="pin-form"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          void act("pin", { action: "comment", text: pinText, productId: l.productId, pin: pending.pin }).then((ok) => {
+                            if (ok) {
+                              setPending(null);
+                              setPinText("");
+                            }
+                          });
+                        }}
+                      >
+                        <textarea id={`pin-${l.productId}`} value={pinText} onChange={(e) => setPinText(e.target.value)} placeholder="Vad vill ni ändra här? T.ex. lite mindre logga" rows={2} />
+                        <div>
+                          <button type="button" className="offer-remove" onClick={() => setPending(null)}>
+                            Avbryt
+                          </button>
+                          <button type="submit" className="share-approve-btn" disabled={busy === "pin" || !pinText.trim()}>
+                            {busy === "pin" ? "Skickar…" : "Kommentera punkten"}
+                          </button>
+                        </div>
+                      </form>
+                    ) : null}
+                  </div>
+                ) : null}
               </li>
             );
           })}
@@ -215,6 +273,7 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
                 <div>
                   <b>{c.name}</b>
                   {c.productId ? <em>om {lineName(c.productId)}</em> : null}
+                  {c.pin ? <span className="pin-badge">Punkt {quote.comments.filter((o) => o.pin && o.productId === c.productId).indexOf(c) + 1}</span> : null}
                   <time>{when(c.at)}</time>
                 </div>
                 <p>{c.text}</p>
@@ -247,6 +306,7 @@ export function ShareView({ token, initial }: { token: string; initial: PublicQu
           </form>
         </section>
       </div>
+      <SiteFooter />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
-import { CategoryShop, type ShopItem } from "@/components/CategoryShop";
+import { CategoryShop } from "@/components/CategoryShop";
+import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { fromPrice } from "@/lib/catalog";
 import { EVENT_IDS, eventOf, familiesForEvent } from "@/lib/events";
+import { toShopItem } from "@/lib/shopItem";
 
 export function generateStaticParams() {
   return EVENT_IDS.map((slug) => ({ slug }));
@@ -16,23 +17,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function EventPage({ params }: { params: Promise<{ slug: string }> }) {
   const ev = eventOf((await params).slug);
   if (!ev) notFound();
-  const items: ShopItem[] = familiesForEvent(ev.slug).map((item) => ({
-    id: item.id,
-    name: item.name,
-    subcategory: item.subcategory,
-    image: item.image,
-    from: item.variants[0] ? Math.round(fromPrice(item)) : 0,
-    colors: item.variants.slice(0, 3).map((v) => v.colorHex),
-  }));
+  const items = familiesForEvent(ev.slug).map(toShopItem);
 
   return (
     <div className="shop">
-      <SiteHeader back={{ href: "/", label: "Tillbaka" }} />
-      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} tone={ev.tone} scene={ev.scene}
+      <SiteHeader />
+      <CategoryShop slug={ev.slug} name={ev.name} hint={ev.hint} scene={ev.scene}
         stages={ev.stages}
         photos={ev.photos.map((p) => ({ product: p.product, caption: p.caption }))}
         items={items}
       />
+      <SiteFooter />
     </div>
   );
 }

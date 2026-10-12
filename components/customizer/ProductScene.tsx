@@ -1,8 +1,8 @@
 "use client";
 
 import { OrbitControls, useGLTF } from "@react-three/drei";
-import { Canvas, type ThreeEvent, useThree } from "@react-three/fiber";
-import { Component, type ReactNode, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Canvas, type ThreeEvent, useFrame, useThree } from "@react-three/fiber";
+import { Component, type ReactNode, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { DecalGeometry } from "three/examples/jsm/geometries/DecalGeometry.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -10,8 +10,20 @@ import type { LogoArt } from "@/components/customizer/logoArt";
 import { BASE_COLOR } from "@/lib/colors";
 import type { Method, Zone } from "@/lib/marking";
 
+const WHITE = new THREE.Color("#ffffff");
+
 export type Placement = { point: THREE.Vector3; normal: THREE.Vector3 };
-export type SceneApi = { capture: () => string };
+export type SceneApi = {
+  capture: () => string;
+  /** One shot per print, each facing the camera – used as proof images in the quote. */
+  captureAll: () => { key: string; image: string }[];
+  /** Move a print along the surface, in screen directions; steps are fractions of the product size. */
+  nudge: (key: string, dx: number, dy: number) => void;
+  /** Turn the camera back to the selected print. */
+  frame: (key: string) => void;
+  /** One slow turn around the product, recorded as a video clip; null when the browser cannot record. */
+  recordSpin: (seconds?: number) => Promise<{ blob: Blob; ext: string } | null>;
+};
 
 /** One print on the product: the logo at a position, or the name print. */
 export type Layer = {
@@ -158,32 +170,13 @@ function Product(props: Props & { object: THREE.Object3D }) {
   }, [tints, color]);
 
   const normals = useRef<Record<string, THREE.Vector3>>({});
+  const points = useRef<Record<string, THREE.Vector3>>({});
   const mainKey = layers[0]?.key ?? "";
-  useEffect(() => {
-    onReady({
-      capture: () => {
-        const cam = camera as THREE.PerspectiveCamera;
-        const saved = cam.position.clone();
-        const n = normals.current[mainKey] ?? new THREE.Vector3(0, 0, 1);
-        const view = new THREE.Vector3(n.x, Math.max(n.y, 0.12), n.z).normalize().multiplyScalar(radius * 2.7);
-        cam.position.copy(view);
-        cam.lookAt(0, 0, 0);
-        gl.render(scene, cam);
-        const shot = gl.domElement.toDataURL("image/jpeg", 0.88);
-        cam.position.copy(saved);
-        cam.lookAt(0, 0, 0);
-        return shot;
-      },
-    });
-  }, [onReady, camera, gl, scene, radius, mainKey]);
+  const layerKeys = useMemo(() => layers.map((l) => l.key), [layers]);
 
-  // Selecting another print turns the product so that print faces the camera.
-  const shownKey = useRef(active);
-  useEffect(() => {
-    if (shownKey.current === active) return;
-    shownKey.current = active;
-    const n = normals.current[active];
-    if (!n) return;
+  const turnTo = useCallback((key: string) => {
+    const n = normals.current[key];
+    if (!n) return () => {};
     const { camera: cam, controls } = get();
     const from = cam.position.clone();
     const to = new THREE.Vector3(n.x, Math.max(n.y, 0.15), n.z).normalize().multiplyScalar(from.length());
@@ -197,7 +190,144 @@ function Product(props: Props & { object: THREE.Object3D }) {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [active, get]);
+  }, [get]);
+
+  useEffect(() => {
+    onReady({
+      nudge: (key, dx, dy) => {
+        const p = points.current[key];
+        const n = normals.current[key];
+        if (!p || !n) return;
+        const cam = get().camera;
+        const right = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 0);
+        const up = new THREE.Vector3().setFromMatrixColumn(cam.matrixWorld, 1);
+        const along = (v: THREE.Vector3) => v.addScaledVector(n, -v.dot(n)).normalize();
+        const target = p
+          .clone()
+          .addScaledVector(along(right), dx * radius)
+          .addScaledVector(along(up), dy * radius);
+        const ray = new THREE.Raycaster(target.clone().addScaledVector(n, radius), n.clone().negate());
+        const hit = ray.intersectObjects(meshes, false)[0];
+        if (hit?.face) onPlace(key, { point: hit.point.clone(), normal: smoothNormal(hit) });
+      },
+      frame: (key) => {
+        turnTo(key);
+      },
+      recordSpin: (seconds = 4) => {
+        const canvas = gl.domElement as HTMLCanvasElement & { captureStream?: (fps: number) => MediaStream };
+        if (typeof MediaRecorder === "undefined" || !canvas.captureStream) return Promise.resolve(null);
+        const mime = ["video/mp4;codecs=avc1", "video/mp4", "video/webm;codecs=vp9", "video/webm"].find((m) => MediaRecorder.isTypeSupported(m));
+        if (!mime) return Promise.resolve(null);
+        const { camera: cam, controls } = get();
+        const orbit = controls as { enabled: boolean; autoRotate: boolean } | null;
+        const saved = cam.position.clone();
+        const wasAuto = orbit?.autoRotate ?? false;
+        const rings: THREE.Object3D[] = [];
+        scene.traverse((o) => o.userData.ring && o.visible && rings.push(o));
+        rings.forEach((o) => (o.visible = false));
+        const bg = scene.background;
+        scene.background = WHITE;
+        setEnabled(controls, false);
+        if (orbit) orbit.autoRotate = false;
+        const flat = Math.hypot(saved.x, saved.z) || radius * 3.4;
+        const height = saved.y;
+        const start = Math.atan2(saved.x, saved.z);
+        const stream = canvas.captureStream(30);
+        const rec = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+        const chunks: Blob[] = [];
+        rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+        return new Promise((resolve) => {
+          const t0 = performance.now();
+          let raf = 0;
+          const finish = () => {
+            cancelAnimationFrame(raf);
+            rings.forEach((o) => (o.visible = true));
+            scene.background = bg;
+            if (orbit) orbit.autoRotate = wasAuto;
+            setEnabled(controls, true);
+            moveCamera(cam, saved, controls);
+          };
+          rec.onstop = () => {
+            finish();
+            stream.getTracks().forEach((t) => t.stop());
+            resolve(chunks.length ? { blob: new Blob(chunks, { type: mime.split(";")[0] }), ext: mime.includes("mp4") ? "mp4" : "webm" } : null);
+          };
+          const step = (t: number) => {
+            const k = Math.min(1, (t - t0) / (seconds * 1000));
+            const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+            const a = start + e * Math.PI * 2;
+            cam.position.set(Math.sin(a) * flat, height, Math.cos(a) * flat);
+            cam.lookAt(0, 0, 0);
+            gl.render(scene, cam);
+            if (k < 1) raf = requestAnimationFrame(step);
+            else setTimeout(() => rec.state !== "inactive" && rec.stop(), 120);
+          };
+          rec.start(250);
+          raf = requestAnimationFrame(step);
+        });
+      },
+      captureAll: () => {
+        const cam = camera as THREE.PerspectiveCamera;
+        const saved = cam.position.clone();
+        const rings: THREE.Object3D[] = [];
+        scene.traverse((o) => o.userData.ring && o.visible && rings.push(o));
+        rings.forEach((o) => (o.visible = false));
+        const bg = scene.background;
+        scene.background = WHITE;
+        const out = document.createElement("canvas");
+        const src = gl.domElement;
+        const w = Math.min(1000, src.width);
+        out.width = w;
+        out.height = Math.round((src.height / src.width) * w);
+        const ctx = out.getContext("2d");
+        const shots = layerKeys.map((key) => {
+          const n = normals.current[key] ?? new THREE.Vector3(0, 0, 1);
+          cam.position.copy(new THREE.Vector3(n.x, Math.max(n.y, 0.12), n.z).normalize().multiplyScalar(radius * 2.5));
+          cam.lookAt(0, 0, 0);
+          gl.render(scene, cam);
+          if (!ctx) return { key, image: src.toDataURL("image/jpeg", 0.8) };
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, out.width, out.height);
+          ctx.drawImage(src, 0, 0, out.width, out.height);
+          return { key, image: out.toDataURL("image/jpeg", 0.82) };
+        });
+        scene.background = bg;
+        rings.forEach((o) => (o.visible = true));
+        cam.position.copy(saved);
+        cam.lookAt(0, 0, 0);
+        gl.render(scene, cam);
+        return shots;
+      },
+      capture: () => {
+        const cam = camera as THREE.PerspectiveCamera;
+        const saved = cam.position.clone();
+        const n = normals.current[mainKey] ?? new THREE.Vector3(0, 0, 1);
+        const view = new THREE.Vector3(n.x, Math.max(n.y, 0.12), n.z).normalize().multiplyScalar(radius * 2.7);
+        const rings: THREE.Object3D[] = [];
+        scene.traverse((o) => o.userData.ring && o.visible && rings.push(o));
+        rings.forEach((o) => (o.visible = false));
+        const bg = scene.background;
+        scene.background = WHITE;
+        cam.position.copy(view);
+        cam.lookAt(0, 0, 0);
+        gl.render(scene, cam);
+        const shot = gl.domElement.toDataURL("image/jpeg", 0.88);
+        scene.background = bg;
+        rings.forEach((o) => (o.visible = true));
+        cam.position.copy(saved);
+        cam.lookAt(0, 0, 0);
+        return shot;
+      },
+    });
+  }, [onReady, camera, gl, scene, radius, mainKey, get, meshes, onPlace, turnTo, layerKeys]);
+
+  // Selecting another print turns the product so that print faces the camera.
+  const shownKey = useRef(active);
+  useEffect(() => {
+    if (shownKey.current === active) return;
+    shownKey.current = active;
+    return turnTo(active);
+  }, [active, turnTo]);
 
   const click = (e: ThreeEvent<MouseEvent>) => {
     if (e.delta > 4 || dragging.current || !e.face) return;
@@ -244,7 +374,11 @@ function Product(props: Props & { object: THREE.Object3D }) {
           zones={zones}
           sizeCm={sizeCm}
           dim={layers.length > 1 && l.key !== active}
-          onNormal={(n) => (normals.current[l.key] = n)}
+          selected={l.key === active}
+          onPose={(p, n) => {
+            points.current[l.key] = p;
+            normals.current[l.key] = n;
+          }}
           onGrab={() => startDrag(l.key)}
           isDragging={() => Boolean(dragging.current)}
         />
@@ -260,7 +394,8 @@ function LogoDecal({
   zones,
   sizeCm,
   dim,
-  onNormal,
+  selected,
+  onPose,
   onGrab,
   isDragging,
 }: {
@@ -270,7 +405,8 @@ function LogoDecal({
   zones: Zone[];
   sizeCm: number;
   dim: boolean;
-  onNormal: (n: THREE.Vector3) => void;
+  selected: boolean;
+  onPose: (point: THREE.Vector3, normal: THREE.Vector3) => void;
   onGrab: () => void;
   isDragging: () => boolean;
 }) {
@@ -304,9 +440,59 @@ function LogoDecal({
     return { mesh: hit.object as THREE.Mesh, point: hit.point.clone(), normal: avg };
   }, [root, meshes, zones, zone, point, normal, logoSize]);
 
+  const poseRef = useRef(onPose);
   useEffect(() => {
-    if (placement) onNormal(placement.normal);
-  }, [placement, onNormal]);
+    poseRef.current = onPose;
+  });
+  useEffect(() => {
+    if (placement) poseRef.current(placement.point, placement.normal);
+  }, [placement]);
+
+  /** A thin pulsing frame around the selected print, lying on the surface. */
+  const ring = useRef<THREE.Mesh>(null);
+  const frameGeo = useMemo(() => {
+    const w = logoSize.width * 0.62;
+    const h = logoSize.height * 0.62;
+    const shape = new THREE.Shape();
+    const r = Math.min(w, h) * 0.18;
+    shape.moveTo(-w + r, -h);
+    shape.lineTo(w - r, -h);
+    shape.quadraticCurveTo(w, -h, w, -h + r);
+    shape.lineTo(w, h - r);
+    shape.quadraticCurveTo(w, h, w - r, h);
+    shape.lineTo(-w + r, h);
+    shape.quadraticCurveTo(-w, h, -w, h - r);
+    shape.lineTo(-w, -h + r);
+    shape.quadraticCurveTo(-w, -h, -w + r, -h);
+    const t = Math.min(w, h) * 0.035;
+    const hole = new THREE.Path();
+    const wi = w - t;
+    const hi = h - t;
+    const ri = Math.max(0.0001, r - t);
+    hole.moveTo(-wi + ri, -hi);
+    hole.lineTo(wi - ri, -hi);
+    hole.quadraticCurveTo(wi, -hi, wi, -hi + ri);
+    hole.lineTo(wi, hi - ri);
+    hole.quadraticCurveTo(wi, hi, wi - ri, hi);
+    hole.lineTo(-wi + ri, hi);
+    hole.quadraticCurveTo(-wi, hi, -wi, hi - ri);
+    hole.lineTo(-wi, -hi + ri);
+    hole.quadraticCurveTo(-wi, -hi, -wi + ri, -hi);
+    shape.holes.push(hole);
+    return new THREE.ShapeGeometry(shape, 8);
+  }, [logoSize]);
+  useEffect(() => () => frameGeo.dispose(), [frameGeo]);
+  const framePose = useMemo(() => {
+    if (!placement) return null;
+    const pos = placement.point.clone().addScaledVector(placement.normal, Math.max(logoSize.width, logoSize.height) * 0.06);
+    const up = Math.abs(placement.normal.y) > 0.92 ? new THREE.Vector3(0, 0, -1) : new THREE.Vector3(0, 1, 0);
+    const m = new THREE.Matrix4().lookAt(pos.clone().add(placement.normal), pos, up);
+    return { pos, quat: new THREE.Quaternion().setFromRotationMatrix(m) };
+  }, [placement, logoSize]);
+  useFrame(({ clock }) => {
+    const mat = ring.current?.material as THREE.MeshBasicMaterial | undefined;
+    if (mat) mat.opacity = 0.55 + Math.sin(clock.elapsedTime * 3.2) * 0.3;
+  });
 
   const texture = useMemo(() => {
     if (!art) return null;
@@ -352,18 +538,25 @@ function LogoDecal({
 
   if (!decal || !material) return null;
   return (
-    <mesh
-      geometry={decal}
-      material={material}
-      renderOrder={2}
-      userData={{ decal: true }}
-      onPointerDown={(e) => {
-        e.stopPropagation();
-        onGrab();
-      }}
-      onPointerOver={() => !isDragging() && (document.body.style.cursor = "grab")}
-      onPointerOut={() => !isDragging() && (document.body.style.cursor = "")}
-    />
+    <>
+      <mesh
+        geometry={decal}
+        material={material}
+        renderOrder={2}
+        userData={{ decal: true }}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onGrab();
+        }}
+        onPointerOver={() => !isDragging() && (document.body.style.cursor = "grab")}
+        onPointerOut={() => !isDragging() && (document.body.style.cursor = "")}
+      />
+      {selected && framePose ? (
+        <mesh ref={ring} geometry={frameGeo} position={framePose.pos} quaternion={framePose.quat} renderOrder={3} raycast={() => null} userData={{ ring: true }}>
+          <meshBasicMaterial color="#8d3d2c" transparent opacity={0.7} depthTest={false} side={THREE.DoubleSide} />
+        </mesh>
+      ) : null}
+    </>
   );
 }
 

@@ -38,6 +38,53 @@ const luminance = (hex: string) => {
 
 export const isDark = (hex: string) => luminance(hex) < 0.5;
 
+type RGB = [number, number, number];
+const rgbOf = (hex: string): RGB => {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+};
+
+/** WCAG contrast ratio, 1 (same) to 21 (black on white). */
+export function contrastRatio(a: RGB, b: RGB) {
+  const lum = (c: RGB) => {
+    const [r, g, bl] = c.map((v) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * bl;
+  };
+  const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** The colour covering most of the printed artwork – what the eye sees against the product. */
+export function dominantInk(art: LogoArt): RGB | null {
+  const ctx = art.canvas.getContext("2d");
+  if (!ctx) return null;
+  const { width, height } = art.canvas;
+  const data = ctx.getImageData(0, 0, width, height).data;
+  const buckets = new Map<number, { n: number; r: number; g: number; b: number }>();
+  const stride = Math.max(4, Math.floor((width * height) / 6000)) * 4;
+  for (let i = 0; i < data.length; i += stride) {
+    if (data[i + 3] < 160) continue;
+    const key = ((data[i] >> 5) << 6) | ((data[i + 1] >> 5) << 3) | (data[i + 2] >> 5);
+    const b = buckets.get(key) ?? { n: 0, r: 0, g: 0, b: 0 };
+    b.n += 1;
+    b.r += data[i];
+    b.g += data[i + 1];
+    b.b += data[i + 2];
+    buckets.set(key, b);
+  }
+  const top = [...buckets.values()].sort((x, y) => y.n - x.n)[0];
+  return top ? [top.r / top.n, top.g / top.n, top.b / top.n] : null;
+}
+
+/** How well the artwork stands out on a product colour. */
+export const inkContrast = (art: LogoArt, productHex: string) => {
+  const ink = dominantInk(art);
+  return ink ? contrastRatio(ink, rgbOf(productHex)) : 21;
+};
+
 /** Keep the N most common colours of the logo and snap every pixel to the nearest one. */
 function reduceColors(data: Uint8ClampedArray, n: number, ink: [number, number, number]) {
   if (n <= 1) {

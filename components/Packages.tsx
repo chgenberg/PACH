@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useCart } from "@/components/CartProvider";
 import { peopleForBudget } from "@/lib/budget";
+import { budgetRange, kitForBudget } from "@/lib/budgetKit";
 import { familyById } from "@/lib/catalog";
 import type { EventId } from "@/lib/eventAgent";
 import { packageQty, PACKAGES } from "@/lib/packages";
@@ -31,7 +32,7 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
     return { ...t, lines, total: lines.reduce((s, l) => s + l.price, 0), reach };
   });
 
-  const add = (tier: (typeof tiers)[number]) => {
+  const add = (tier: { id: string; lines: { family: { id: string }; qty: number }[] }) => {
     for (const l of tier.lines) {
       const existing = cart.itemOf(l.family.id);
       cart.save(l.family.id, { ...existing, qty: l.qty, image: existing?.image ?? images[l.family.id] });
@@ -39,6 +40,12 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
     setAdded(tier.id);
     setTimeout(() => setAdded(null), 2200);
   };
+
+  const range = budgetRange(def, people);
+  const [kitBudgetRaw, setKitBudget] = useState<number | null>(null);
+  const kitBudget = Math.min(range.max, Math.max(range.min, kitBudgetRaw ?? Math.round((tiers[1]?.total ?? range.max / 2) / range.step) * range.step));
+  const kit = kitForBudget(def, people, kitBudget);
+  const fill = ((kitBudget - range.min) / Math.max(1, range.max - range.min)) * 100;
 
   return (
     <section className="pkgs">
@@ -111,6 +118,57 @@ export function Packages({ event, images }: { event: EventId; images: Record<str
             </div>
           </article>
         ))}
+      </div>
+
+      <div className="kit">
+        <div className="kit-head">
+          <div>
+            <p className="pkg-tier">Bygg ert kit</p>
+            <h3>Dra i budgeten – vi sätter ihop det bästa som ryms</h3>
+          </div>
+          <div className="kit-sum">
+            <strong>{sek(kitBudget)}</strong>
+            <small>
+              {sek(Math.round(kitBudget / Math.max(1, people)))} {def.perPerson}
+            </small>
+          </div>
+        </div>
+        <input
+          className="kit-range"
+          type="range"
+          min={range.min}
+          max={range.max}
+          step={range.step}
+          value={kitBudget}
+          onChange={(e) => setKitBudget(Number(e.target.value))}
+          style={{ ["--fill" as string]: `${fill}%` }}
+          aria-label="Budget för kitet"
+        />
+        <ul className="kit-lines">
+          {kit.lines.map((l) => {
+            const src = images[l.family.id] ?? l.family.image;
+            return (
+              <li key={l.family.id}>
+                <Image src={src} alt="" width={96} height={96} unoptimized={src.startsWith("/api/")} />
+                <span>
+                  <b>{l.family.name}</b>
+                  <small>
+                    {l.qty} st · {sek(l.price)}
+                  </small>
+                </span>
+              </li>
+            );
+          })}
+          {kit.lines.length === 0 ? <li className="kit-empty">Höj budgeten lite – då ryms den första produkten.</li> : null}
+        </ul>
+        <div className="kit-foot">
+          <span>
+            Kitet kostar <b>{sek(kit.total)}</b> inkl. tryck · {sek(Math.max(0, kitBudget - kit.total))} kvar
+          </span>
+          <button type="button" className={added === "kit" ? "is-added" : ""} disabled={!kit.lines.length} onClick={() => add({ id: "kit", lines: kit.lines })}>
+            {added === "kit" ? "Tillagt ✓" : "Lägg kitet i offerten"}
+          </button>
+        </div>
       </div>
     </section>
   );

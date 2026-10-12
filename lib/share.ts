@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { familyById } from "@/lib/catalog";
 import { estimate } from "@/lib/delivery";
 import { designSummary } from "@/lib/marking";
+import { sanitizePin } from "@/lib/quoteTypes";
 import { getQuote, listQuotes, saveQuote, view, type ShareState, type StoredQuote } from "@/lib/quotes";
 
 const TOKEN = /^[0-9a-f]{32}$/;
@@ -43,7 +44,9 @@ export function publicView(q: StoredQuote) {
         image: src?.image && /^(\/|data:image\/)/.test(src.image) ? src.image : (family?.image ?? null),
         design: family && src?.design ? designSummary(family, src.design) : null,
         delivery: family ? estimate(family, src?.design).date : null,
+        deliveryDays: family ? estimate(family, src?.design).days : 0,
         approval: share.approvals[p.productId] ?? null,
+        proofs: src?.proofs ?? [],
       };
     }),
     comments: share.comments,
@@ -60,7 +63,7 @@ export async function getShared(token: string) {
 
 const clean = (s: unknown, max: number) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim().slice(0, max) : "");
 
-export type ShareAction = { action: "approve" | "unapprove" | "comment"; name?: string; productId?: string; text?: string };
+export type ShareAction = { action: "approve" | "unapprove" | "comment" | "approveAll"; name?: string; productId?: string; text?: string; pin?: unknown };
 
 export async function applyShareAction(token: string, a: ShareAction): Promise<{ quote?: PublicQuote; error?: string }> {
   const q = await byToken(token);
@@ -75,7 +78,10 @@ export async function applyShareAction(token: string, a: ShareAction): Promise<{
     const text = clean(a.text, 1000);
     if (!text) return { error: "Skriv en kommentar" };
     if (share.comments.length >= 300) return { error: "Tråden är full" };
-    share.comments.push({ id: randomBytes(6).toString("hex"), at: now, name, text, productId });
+    const pin = productId ? sanitizePin(a.pin) : undefined;
+    share.comments.push({ id: randomBytes(6).toString("hex"), at: now, name, text, productId, ...(pin ? { pin } : {}) });
+  } else if (a.action === "approveAll") {
+    for (const l of q.lines) share.approvals[l.productId] = { name, at: now };
   } else {
     if (!productId) return { error: "Produkten finns inte i offerten" };
     if (a.action === "approve") share.approvals[productId] = { name, at: now };
@@ -86,6 +92,16 @@ export async function applyShareAction(token: string, a: ShareAction): Promise<{
   let status = q.status;
   if (allApproved && (status === "skapad" || status === "skickad")) status = "godkand";
   if (!allApproved && status === "godkand" && !q.invoice.approved) status = "skickad";
-  const saved = await saveQuote({ ...q, share, status });
+  let order = q.order;
+  if (allApproved && !order) {
+    order = {
+      stage: "korrektur",
+      history: [
+        { stage: "bekraftad", at: now, note: "Offert godkänd" },
+        { stage: "korrektur", at: now, note: `3D-korrektur godkänt av ${name}` },
+      ],
+    };
+  }
+  const saved = await saveQuote({ ...q, share, status, order });
   return { quote: publicView(saved) };
 }
