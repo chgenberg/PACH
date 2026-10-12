@@ -112,110 +112,112 @@ export function ProductPage({ productId }: { productId: string }) {
     <div className="shop">
       <SiteHeader />
       <article className="pdp">
-        <div className="pdp-gal">
-          <div className="pdp-photo">
-            <Image key={photo} src={photo} alt={`${family.name} i ${colorName(color)}`} width={900} height={900} unoptimized={/^(\/api\/|data:)/.test(photo)} />
-            <FavoriteButton id={family.id} name={family.name} />
+        <div className="pdp-hero">
+          <div className="pdp-gal">
+            <div className="pdp-photo">
+              <Image key={photo} src={photo} alt={`${family.name} i ${colorName(color)}`} width={900} height={900} unoptimized={/^(\/api\/|data:)/.test(photo)} />
+              <FavoriteButton id={family.id} name={family.name} />
+            </div>
           </div>
-        </div>
-        <div className="pdp-buy">
-          <p className="kicker">
-            {family.brand} · {family.subcategory} · {family.id}
-          </p>
-          <h1>{family.name}</h1>
-          <p className="lede">{family.short}</p>
-          <p className="pdp-price">
-            {sek(price.unitInclPrint)}
-            <small>/st inkl. tryck, exkl. moms</small>
-          </p>
-          <ul className="pdp-facts">
-            <li>Minsta antal {moq} st</li>
-            <li>{family.material.replace(/;/g, ", ")}</li>
-            <li>Leverans ca {fmtDay(delivery.date)}</li>
-          </ul>
-
-          <div className="drawer-block">
-            <p className="drawer-label">
-              Märkning <span>{METHOD_INFO[method].label}</span>
+          <div className="pdp-buy">
+            <p className="kicker">
+              {family.brand} · {family.subcategory} · {family.id}
             </p>
-            <div className="pdp-methods">
-              {allowed.map((m) => (
-                <button key={m} type="button" className={m === method ? "is-on" : ""} onClick={() => setMethod(m)}>
-                  {METHOD_INFO[m].label}
+            <h1>{family.name}</h1>
+            <p className="lede">{family.short}</p>
+            <p className="pdp-price">
+              {sek(price.unitInclPrint)}
+              <small>/st inkl. tryck, exkl. moms</small>
+            </p>
+            <ul className="pdp-facts">
+              <li>Minsta antal {moq} st</li>
+              <li>{family.material.replace(/;/g, ", ")}</li>
+              <li>Leverans ca {fmtDay(delivery.date)}</li>
+            </ul>
+
+            <div className="drawer-block">
+              <p className="drawer-label">
+                Märkning <span>{METHOD_INFO[method].label}</span>
+              </p>
+              <div className="pdp-methods">
+                {allowed.map((m) => (
+                  <button key={m} type="button" className={m === method ? "is-on" : ""} onClick={() => setMethod(m)}>
+                    {METHOD_INFO[m].label}
+                  </button>
+                ))}
+              </div>
+              <p className="drawer-note">
+                {METHOD_INFO[method].blurb}. <Link href={`/tryck/${method}`}>Läs mer om {METHOD_INFO[method].label.toLowerCase()} →</Link>
+              </p>
+            </div>
+
+            <div className="drawer-block">
+              <p className="drawer-label">
+                Färg <span>{colorName(color)}</span>
+              </p>
+              <div className="swatches">
+                {swatches.map((s) => (
+                  <button
+                    key={s.hex}
+                    type="button"
+                    title={s.name}
+                    aria-pressed={color === s.hex.toUpperCase()}
+                    className="swatch"
+                    style={{ background: s.hex }}
+                    onClick={() => {
+                      setColor(s.hex.toUpperCase());
+                      setPreview(null);
+                      setProofs(undefined);
+                    }}
+                  />
+                ))}
+              </div>
+              {failed ? <p className="brandbar-err">{failed}</p> : null}
+            </div>
+
+            <div className="drawer-block">
+              <p className="drawer-label">Antal</p>
+              <div className="stepper">
+                <button type="button" onClick={() => setQty((q) => Math.max(moq, q - 10))} aria-label="Färre">
+                  −
                 </button>
-              ))}
+                <input type="number" min={moq} value={qty} onChange={(e) => setQty(Math.max(moq, Number(e.target.value) || moq))} />
+                <button type="button" onClick={() => setQty((q) => q + 10)} aria-label="Fler">
+                  +
+                </button>
+              </div>
             </div>
-            <p className="drawer-note">
-              {METHOD_INFO[method].blurb}. <Link href={`/tryck/${method}`}>Läs mer om {METHOD_INFO[method].label.toLowerCase()} →</Link>
-            </p>
-          </div>
 
-          <div className="drawer-block">
-            <p className="drawer-label">
-              Färg <span>{colorName(color)}</span>
-            </p>
-            <div className="swatches">
-              {swatches.map((s) => (
-                <button
-                  key={s.hex}
-                  type="button"
-                  title={s.name}
-                  aria-pressed={color === s.hex.toUpperCase()}
-                  className="swatch"
-                  style={{ background: s.hex }}
-                  onClick={() => {
-                    setColor(s.hex.toUpperCase());
-                    setPreview(null);
-                    setProofs(undefined);
-                  }}
-                />
-              ))}
+            <div className="pdp-total">
+              <div>
+                <span>Totalt för {qty} st</span>
+                <b>{sek(price.lineTotal)}</b>
+              </div>
+              <small>
+                {sek(price.unitInclPrint)}/st · tryckstart {sek(price.setup)} · exkl. moms
+              </small>
+              <DeliveryNote family={family} design={activeDesign} needBy={cart.eventDate} />
             </div>
-            {failed ? <p className="brandbar-err">{failed}</p> : null}
-          </div>
 
-          <div className="drawer-block">
-            <p className="drawer-label">Antal</p>
-            <div className="stepper">
-              <button type="button" onClick={() => setQty((q) => Math.max(moq, q - 10))} aria-label="Färre">
-                −
+            <div className="pdp-cta">
+              <button type="button" className="drawer-save" onClick={() => addAndGo("/offert")}>
+                {line ? "Uppdatera offerten" : "Få offert"}
               </button>
-              <input type="number" min={moq} value={qty} onChange={(e) => setQty(Math.max(moq, Number(e.target.value) || moq))} />
-              <button type="button" onClick={() => setQty((q) => q + 10)} aria-label="Fler">
-                +
+              <button type="button" className="cz-cta" onClick={() => setCustomizing(true)}>
+                Anpassa i 3D
               </button>
             </div>
-          </div>
+            {saved && line ? (
+              <p className="pdp-saved" role="status">
+                <span>✓ Designen ligger i offerten</span>
+                <Link href="/offert">Visa offerten →</Link>
+              </p>
+            ) : null}
+            {design ? <p className="drawer-note">{designSummary(family, design)}</p> : null}
+            <p className="cta-promise">Riktpris. Ordern binds först när ni godkänner offert och 3D-korrektur.</p>
 
-          <div className="pdp-total">
-            <div>
-              <span>Totalt för {qty} st</span>
-              <b>{sek(price.lineTotal)}</b>
-            </div>
-            <small>
-              {sek(price.unitInclPrint)}/st · tryckstart {sek(price.setup)} · exkl. moms
-            </small>
-            <DeliveryNote family={family} design={activeDesign} needBy={cart.eventDate} />
+            {family.shop === "klader" && cart.host ? <TryOn productId={productId} host={cart.host} image={base} color={color} /> : null}
           </div>
-
-          <div className="pdp-cta">
-            <button type="button" className="drawer-save" onClick={() => addAndGo("/offert")}>
-              {line ? "Uppdatera offerten" : "Få offert"}
-            </button>
-            <button type="button" className="cz-cta" onClick={() => setCustomizing(true)}>
-              Anpassa i 3D
-            </button>
-          </div>
-          {saved && line ? (
-            <p className="pdp-saved" role="status">
-              <span>✓ Designen ligger i offerten</span>
-              <Link href="/offert">Visa offerten →</Link>
-            </p>
-          ) : null}
-          {design ? <p className="drawer-note">{designSummary(family, design)}</p> : null}
-          <p className="cta-promise">Riktpris. Ordern binds först när ni godkänner offert och 3D-korrektur.</p>
-
-          {family.shop === "klader" && cart.host ? <TryOn productId={productId} host={cart.host} image={base} color={color} /> : null}
         </div>
 
         <section className="pdp-matrix">

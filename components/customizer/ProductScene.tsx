@@ -12,6 +12,15 @@ import type { Method, Zone } from "@/lib/marking";
 
 const WHITE = new THREE.Color("#ffffff");
 
+/** How each marking method catches the light: thread sheen, matte ink, glossy film or bare metal. */
+const FINISH: Record<Method, { roughness: number; metalness: number; clearcoat: number; sheen: number; bump: number }> = {
+  brodyr: { roughness: 0.8, metalness: 0, clearcoat: 0, sheen: 0.9, bump: 20 },
+  screentryck: { roughness: 0.9, metalness: 0, clearcoat: 0, sheen: 0, bump: 4 },
+  transfer: { roughness: 0.66, metalness: 0, clearcoat: 0, sheen: 0, bump: 6 },
+  digitaltryck: { roughness: 0.97, metalness: 0, clearcoat: 0, sheen: 0, bump: 6 },
+  gravyr: { roughness: 0.32, metalness: 0.55, clearcoat: 0, sheen: 0, bump: 10 },
+};
+
 export type Placement = { point: THREE.Vector3; normal: THREE.Vector3 };
 export type SceneApi = {
   capture: () => string;
@@ -68,6 +77,7 @@ function Studio() {
 }
 
 type Tint = { color: { value: THREE.Color }; amount: { value: number } };
+const tinted = new WeakMap<THREE.Material, Tint>();
 
 /**
  * Compile the tint shader once per material. It dyes the near-black catalogue texture while keeping
@@ -75,6 +85,9 @@ type Tint = { color: { value: THREE.Color }; amount: { value: number } };
  */
 function prepareTint(material: THREE.Material): Tint {
   const m = material as THREE.MeshStandardMaterial;
+  // React may run this twice for the same material; the shader must keep reading the uniforms we update.
+  const known = tinted.get(m);
+  if (known) return known;
   if (m.map) {
     m.map.generateMipmaps = false;
     m.map.minFilter = THREE.LinearFilter;
@@ -99,6 +112,7 @@ function prepareTint(material: THREE.Material): Tint {
   };
   m.customProgramCacheKey = () => "tint-v2";
   m.needsUpdate = true;
+  tinted.set(m, uniforms);
   return uniforms;
 }
 
@@ -519,21 +533,37 @@ function LogoDecal({
   }, [placement, texture, logoSize]);
   useEffect(() => () => decal?.dispose(), [decal]);
 
+  const bump = useMemo(() => {
+    if (!art?.bump) return null;
+    const t = new THREE.CanvasTexture(art.bump);
+    t.colorSpace = THREE.NoColorSpace;
+    t.anisotropy = 8;
+    return t;
+  }, [art]);
+  useEffect(() => () => bump?.dispose(), [bump]);
+
   const material = useMemo(() => {
     if (!texture) return null;
-    const embroidered = method === "brodyr";
-    return new THREE.MeshStandardMaterial({
+    const finish = FINISH[method];
+    return new THREE.MeshPhysicalMaterial({
       map: texture,
+      bumpMap: bump ?? undefined,
+      bumpScale: finish.bump,
       transparent: true,
       opacity: dim ? 0.82 : 1,
       depthTest: true,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -4,
-      roughness: embroidered ? 1 : method === "transfer" ? 0.35 : method === "gravyr" ? 0.55 : 0.7,
-      metalness: method === "gravyr" ? 0.3 : 0,
+      roughness: finish.roughness,
+      metalness: finish.metalness,
+      clearcoat: finish.clearcoat,
+      clearcoatRoughness: 0.6,
+      sheen: finish.sheen,
+      sheenRoughness: 0.35,
+      sheenColor: new THREE.Color("#ffffff"),
     });
-  }, [texture, method, dim]);
+  }, [texture, bump, method, dim]);
   useEffect(() => () => material?.dispose(), [material]);
 
   if (!decal || !material) return null;

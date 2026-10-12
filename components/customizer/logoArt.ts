@@ -59,9 +59,10 @@ export function contrastRatio(a: RGB, b: RGB) {
 
 /** The colour covering most of the printed artwork – what the eye sees against the product. */
 export function dominantInk(art: LogoArt): RGB | null {
-  const ctx = art.canvas.getContext("2d");
+  const src = art.flat ?? art.canvas;
+  const ctx = src.getContext("2d");
   if (!ctx) return null;
-  const { width, height } = art.canvas;
+  const { width, height } = src;
   const data = ctx.getImageData(0, 0, width, height).data;
   const buckets = new Map<number, { n: number; r: number; g: number; b: number }>();
   const stride = Math.max(4, Math.floor((width * height) / 6000)) * 4;
@@ -141,7 +142,177 @@ function dropWhiteBackground(data: Uint8ClampedArray) {
   for (let i = 0; i < data.length; i += 4) if (data[i] > 236 && data[i + 1] > 236 && data[i + 2] > 236) data[i + 3] = 0;
 }
 
-export type LogoArt = { canvas: HTMLCanvasElement; aspect: number };
+/**
+ * Colour artwork plus a height map, so each method has its own relief and texture on the 3D product.
+ * `flat` is the artwork before stitches, shadows and sheen – what the ink colour is judged on.
+ */
+export type LogoArt = { canvas: HTMLCanvasElement; aspect: number; bump?: HTMLCanvasElement; flat?: HTMLCanvasElement };
+
+const canvasOf = (w: number, h: number) => {
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = h;
+  return c;
+};
+
+/** Darkens the artwork towards its own edges – a bevel for raised thread, a shadow for engraving. */
+function innerShade(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, blur: number, color: string, dx = 0, dy = 0) {
+  const { width, height } = mask;
+  const t = canvasOf(width, height);
+  const tc = t.getContext("2d")!;
+  tc.fillStyle = color;
+  tc.fillRect(0, 0, width, height);
+  tc.globalCompositeOperation = "destination-out";
+  tc.filter = `blur(${blur}px)`;
+  tc.drawImage(mask, dx, dy);
+  ctx.save();
+  ctx.globalCompositeOperation = "source-atop";
+  ctx.drawImage(t, 0, 0);
+  ctx.restore();
+}
+
+/** A plain-weave pattern – the fabric showing through ink. */
+function weave(size = 8) {
+  const p = canvasOf(size * 2, size * 2);
+  const c = p.getContext("2d")!;
+  const cell = (x: number, y: number, horizontal: boolean) => {
+    const g = horizontal ? c.createLinearGradient(x, y, x, y + size) : c.createLinearGradient(x, y, x + size, y);
+    g.addColorStop(0, "rgba(0,0,0,.6)");
+    g.addColorStop(0.5, "rgba(255,255,255,.45)");
+    g.addColorStop(1, "rgba(0,0,0,.6)");
+    c.fillStyle = g;
+    c.fillRect(x, y, size, size);
+  };
+  cell(0, 0, true);
+  cell(size, size, true);
+  cell(size, 0, false);
+  cell(0, size, false);
+  return p;
+}
+
+/**
+ * Embroidery fill: rows of short stitches at 45°, staggered like tatami, each thread lit on one side and
+ * shaded on the other. Coarse enough to survive mipmapping when the print is small on screen.
+ */
+function stitches(ctx: CanvasRenderingContext2D, w: number, h: number, light: string, dark: string, row = 20) {
+  const len = row * 3.2;
+  ctx.save();
+  ctx.lineCap = "butt";
+  for (let x = -h, i = 0; x < w; x += row, i++) {
+    const offset = (i % 3) * (len / 3);
+    ctx.setLineDash([len, row * 0.22]);
+    ctx.lineDashOffset = offset;
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = row * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(x + row * 0.3, 0);
+    ctx.lineTo(x + row * 0.3 + h, h);
+    ctx.stroke();
+    ctx.strokeStyle = light;
+    ctx.lineWidth = row * 0.3;
+    ctx.beginPath();
+    ctx.moveTo(x - row * 0.12, 0);
+    ctx.lineTo(x - row * 0.12 + h, h);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Height map for the method: white is raised, black is sunk; only read where the artwork is. */
+function methodBump(method: LogoDesign["method"], mask: HTMLCanvasElement): HTMLCanvasElement {
+  const { width: w, height: h } = mask;
+  const b = canvasOf(w, h);
+  const ctx = b.getContext("2d")!;
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, w, h);
+  if (method === "gravyr") {
+    // Cut into the material: the surface stays high and the mark drops, with a soft wall.
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.globalCompositeOperation = "destination-out";
+    ctx.filter = "blur(5px)";
+    ctx.drawImage(mask, 0, 0);
+    ctx.filter = "none";
+    ctx.globalCompositeOperation = "destination-over";
+    ctx.fillStyle = "#222";
+    ctx.fillRect(0, 0, w, h);
+    return b;
+  }
+  const lift = { brodyr: 16, transfer: 3, screentryck: 1.5, digitaltryck: 0.8 }[method];
+  ctx.filter = `blur(${lift}px)`;
+  ctx.drawImage(mask, 0, 0);
+  ctx.filter = "none";
+  ctx.globalCompositeOperation = "source-atop";
+  if (method === "brodyr") stitches(ctx, w, h, "rgba(255,255,255,.95)", "rgba(0,0,0,.7)");
+  else if (method === "screentryck" || method === "digitaltryck") {
+    ctx.globalAlpha = method === "digitaltryck" ? 0.55 : 0.3;
+    ctx.fillStyle = ctx.createPattern(weave(), "repeat")!;
+    ctx.fillRect(0, 0, w, h);
+  }
+  return b;
+}
+
+/** A soft shadow on the product around the artwork, for marks that stand up from the surface. */
+function castShadow(ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, blur: number, alpha: number, dx: number, dy: number) {
+  const s = canvasOf(mask.width, mask.height);
+  const sc = s.getContext("2d")!;
+  sc.drawImage(mask, 0, 0);
+  sc.globalCompositeOperation = "source-in";
+  sc.fillStyle = "#000";
+  sc.fillRect(0, 0, s.width, s.height);
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-over";
+  ctx.globalAlpha = alpha;
+  ctx.filter = `blur(${blur}px)`;
+  ctx.drawImage(s, dx, dy);
+  ctx.restore();
+}
+
+/** Surface look of the method on the colour artwork itself. */
+function methodFinish(method: LogoDesign["method"], ctx: CanvasRenderingContext2D, mask: HTMLCanvasElement, darkProduct: boolean) {
+  const { width: w, height: h } = mask;
+  ctx.save();
+  ctx.globalCompositeOperation = "source-atop";
+  if (method === "brodyr") {
+    stitches(ctx, w, h, "rgba(255,255,255,.24)", "rgba(0,0,0,.36)");
+    ctx.restore();
+    innerShade(ctx, mask, 12, "rgba(0,0,0,.6)", -2, -3);
+    innerShade(ctx, mask, 5, "rgba(255,255,255,.3)", 5, 6);
+    castShadow(ctx, mask, 9, darkProduct ? 0.85 : 0.5, 3, 7);
+    return;
+  }
+  if (method === "screentryck" || method === "digitaltryck") {
+    // Ink sits in the fabric: the weave shows through, stronger for the thin digital ink.
+    ctx.globalAlpha = method === "digitaltryck" ? 0.5 : 0.28;
+    ctx.fillStyle = ctx.createPattern(weave(10), "repeat")!;
+    ctx.fillRect(0, 0, w, h);
+    if (method === "digitaltryck") {
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.globalAlpha = 0.24;
+      ctx.fillRect(0, 0, w, h);
+    }
+  } else if (method === "transfer") {
+    // A smooth film: one crisp gloss band across it.
+    const g = ctx.createLinearGradient(0, 0, w, h);
+    g.addColorStop(0.16, "rgba(255,255,255,0)");
+    g.addColorStop(0.3, "rgba(255,255,255,.32)");
+    g.addColorStop(0.35, "rgba(255,255,255,.15)");
+    g.addColorStop(0.44, "rgba(255,255,255,0)");
+    g.addColorStop(1, "rgba(0,0,0,.1)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  }
+  ctx.restore();
+  if (method === "gravyr") {
+    innerShade(ctx, mask, 6, darkProduct ? "rgba(0,0,0,.55)" : "rgba(0,0,0,.4)", 4, 5);
+    innerShade(ctx, mask, 3, "rgba(255,255,255,.25)", -2, -2);
+  } else if (method === "screentryck") {
+    innerShade(ctx, mask, 1.5, "rgba(0,0,0,.25)");
+  } else if (method === "transfer") {
+    innerShade(ctx, mask, 2, "rgba(0,0,0,.22)");
+    castShadow(ctx, mask, 2, darkProduct ? 0.5 : 0.22, 0, 2);
+  }
+}
 
 /** Render the print artwork for a design: shape badge + method look on a transparent canvas. */
 export async function buildLogoArt(src: string | null, d: Pick<LogoDesign, "method" | "colors" | "shape">, productColor: string): Promise<LogoArt> {
@@ -194,33 +365,21 @@ export async function buildLogoArt(src: string | null, d: Pick<LogoDesign, "meth
     else ctx.roundRect(20, 20, out.width - 40, out.height - 40, 100);
     ctx.stroke();
   }
-  const pad = badge ? (d.shape === "rund" ? 0.62 : 0.72) : 1;
+  // A little room around a plain logo so raised methods can cast a shadow on the product.
+  const pad = badge ? (d.shape === "rund" ? 0.62 : 0.72) : 0.94;
   const fit = Math.min((out.width * pad) / mark.width, (out.height * pad) / mark.height);
   const w = mark.width * fit;
   const h = mark.height * fit;
+  // Digital ink spreads a touch into the fibres, so its edges are softer than a stencilled print.
+  if (d.method === "digitaltryck") ctx.filter = "blur(2px)";
   ctx.drawImage(mark, (out.width - w) / 2, (out.height - h) / 2, w, h);
+  ctx.filter = "none";
 
-  // 3. Embroidery gets a thread texture.
-  if (d.method === "brodyr") {
-    ctx.globalCompositeOperation = "source-atop";
-    ctx.strokeStyle = "rgba(0,0,0,.16)";
-    ctx.lineWidth = 3;
-    for (let x = -out.height; x < out.width; x += 9) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + out.height, out.height);
-      ctx.stroke();
-    }
-    ctx.strokeStyle = "rgba(255,255,255,.08)";
-    for (let x = -out.height + 4; x < out.width; x += 9) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + out.height, out.height);
-      ctx.stroke();
-    }
-    ctx.globalCompositeOperation = "source-over";
-  }
-  return { canvas: out, aspect: out.width / out.height };
+  // 3. The method's own surface: stitches, ink in the weave, film sheen or an engraved edge.
+  const mask = canvasOf(out.width, out.height);
+  mask.getContext("2d")!.drawImage(out, 0, 0);
+  methodFinish(d.method, ctx, mask, darkProduct);
+  return { canvas: out, aspect: out.width / out.height, bump: methodBump(d.method, mask), flat: mask };
 }
 
 /** Name print preview: the first name in bold capitals, in a colour that reads on the product. */
