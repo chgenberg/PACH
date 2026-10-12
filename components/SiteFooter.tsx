@@ -41,6 +41,9 @@ export function SiteFooter() {
             <li>
               <Link href="/inspiration">Inspiration</Link>
             </li>
+            <li>
+              <Link href="/3d/skjorta">Skjorta i 3D</Link>
+            </li>
           </ul>
         </div>
         <div>

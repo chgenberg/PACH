@@ -12015,3 +12015,15 @@ body:has(.sp) .stylist-fab {
     display: none;
   }
 }
+
+/* full-screen 3D model page */
+.model-only {
+  position: fixed;
+  inset: 0;
+  background: #f4f3ef;
+  touch-action: none;
+}
+
+body:has(.model-only) .stylist-fab {
+  display: none;
+}
