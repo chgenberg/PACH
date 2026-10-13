@@ -9,6 +9,8 @@ import { activityOf, SEEN_KEY } from "@/components/dashboard/activity";
 const ITEMS = [
   { href: "/dashboard", label: "Översikt", icon: "M4 4h7v7H4z M13 4h7v4h-7z M13 10h7v10h-7z M4 13h7v7H4z" },
   { href: "/dashboard/offerter", label: "Offerter", icon: "M6 3h9l5 5v13H6z M14 3v6h6 M9 13h8 M9 17h6" },
+  { href: "/dashboard/kunder", label: "Kunder", icon: "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21c0-4 3-6 7-6s7 2 7 6 M16 3.5a4 4 0 0 1 0 7 M18 15c2.5.5 4 2.5 4 6" },
+  { href: "/dashboard/kalkyler", label: "Kalkyler", icon: "M6 3h12v18H6z M9 7h6 M9 11h2 M13 11h2 M9 15h2 M13 15h2" },
   { href: "/dashboard/design", label: "Designverktyg", icon: "M4 20l4-1 11-11-3-3L5 16z M14 6l3 3" },
   { href: "/dashboard/fakturaunderlag", label: "Fakturaunderlag", icon: "M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z M9 9h6 M9 13h6" },
   { href: "/dashboard/kampanjer", label: "Butiker & gåvor", icon: "M4 9h16v11H4z M4 9l2-5h12l2 5 M12 9v11 M8 4c0 3 4 5 4 5s4-2 4-5" },
@@ -57,10 +59,44 @@ function useSupplierUrgent(path: string) {
   return count;
 }
 
+/** Reorder requests from the customer portal that still wait for an offer. */
+function useRequests(path: string) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/dashboard/customers", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: { customers?: { newRequests: number }[] }) => live && setCount((j.customers ?? []).reduce((s, c) => s + c.newRequests, 0)))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [path]);
+  return count;
+}
+
+/** Orders where a step is due today or tomorrow, or already too late. */
+function useScheduleAlerts(path: string) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    let live = true;
+    fetch("/api/dashboard/schedule", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((j: { schedules?: Record<string, { level: string }> }) => live && setCount(Object.values(j.schedules ?? {}).filter((s) => s.level === "bradskande" || s.level === "kritisk").length))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [path]);
+  return count;
+}
+
 export function DashboardNav() {
   const path = usePathname();
   const fresh = useFresh(path);
   const urgent = useSupplierUrgent(path);
+  const requests = useRequests(path);
+  const alerts = useScheduleAlerts(path);
   // The design tool needs the whole screen, so the menu shrinks to icons there.
   const compact = path.startsWith("/dashboard/design");
   return (
@@ -83,6 +119,8 @@ export function DashboardNav() {
             </svg>
             <span className="dash-label">{it.label}</span>
             {it.href === "/dashboard" && fresh ? <span className="dash-count" aria-label={`${fresh} nya händelser`}>{fresh}</span> : null}
+            {it.href === "/dashboard/offerter" && alerts ? <span className="dash-count is-alert" aria-label={`${alerts} ordrar med brådskande tidsplan`}>{alerts}</span> : null}
+            {it.href === "/dashboard/kunder" && requests ? <span className="dash-count" aria-label={`${requests} nya önskemål`}>{requests}</span> : null}
             {it.href === "/dashboard/leverantorer" && urgent ? <span className="dash-count" aria-label={`${urgent} brådskande åtgärder`}>{urgent}</span> : null}
           </Link>
         ))}

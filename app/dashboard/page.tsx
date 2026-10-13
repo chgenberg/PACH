@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { activityOf, reminderTodos, SEEN_KEY, todosOf } from "@/components/dashboard/activity";
 import { fmtDate, STATUS_LABEL, useQuotes } from "@/components/dashboard/useQuotes";
+import { LevelBadge, useSchedules } from "@/components/dashboard/useSchedules";
+import { LEVELS } from "@/lib/schedule";
 import { fmtDay } from "@/lib/delivery";
 import { sek } from "@/lib/pricing";
 
@@ -38,8 +40,20 @@ export default function Overview() {
       .catch(() => {});
   }, []);
   const qs = useMemo(() => quotes ?? [], [quotes]);
+  const schedules = useSchedules(quotes);
+  /** Orders whose next step is due within a few working days, worst first. */
+  const doNow = useMemo(
+    () =>
+      Object.values(schedules ?? {})
+        .filter((s) => s.level !== "ok")
+        .sort((a, b) => LEVELS.indexOf(b.level) - LEVELS.indexOf(a.level) || (a.next?.due ?? "").localeCompare(b.next?.due ?? ""))
+        .map((s) => ({ s, company: qs.find((q) => q.ref === s.ref)?.company ?? s.ref })),
+    [schedules, qs],
+  );
+  // Orders already under "Gör nu" are not repeated in the to-do list.
+  const todos = useMemo(() => [...reminderTodos(reminders, now), ...todosOf(qs).filter((t) => !doNow.some((d) => d.s.ref === t.ref))].slice(0, 8), [qs, reminders, now, doNow]);
   const feed = useMemo(() => activityOf(qs).slice(0, 14), [qs]);
-  const todos = useMemo(() => [...reminderTodos(reminders, now), ...todosOf(qs)].slice(0, 8), [qs, reminders, now]);
+
   const upcoming = useMemo(
     () =>
       qs
@@ -97,7 +111,25 @@ export default function Overview() {
 
       <div className="ov-grid">
         <section className="card ov-todo">
-          <h2>Att göra</h2>
+          <h2>Gör nu</h2>
+          {doNow.length ? (
+            <ul className="ov-now">
+              {doNow.map(({ s, company }) => (
+                <li key={s.ref} className={`is-${s.level}`}>
+                  <Link href={`/dashboard/offerter?open=${s.ref}`}>
+                    <b>
+                      {company} <LevelBadge level={s.level} />
+                    </b>
+                    <span>{s.text}</span>
+                    <small>
+                      {s.ref} · behövs {fmtDay(s.eventDate)}
+                    </small>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          <h3 className="ov-sub">Att göra</h3>
           {quotes === null ? <p className="drawer-note">Hämtar…</p> : null}
           {quotes && todos.length === 0 ? <p className="drawer-note">Inget som väntar på dig just nu.</p> : null}
           <ul>
@@ -129,6 +161,7 @@ export default function Overview() {
                     <b>{q.company}</b>
                     <span>
                       {fmtDay(q.eventDate!)} · <i className={`badge badge-${q.status}`}>{STATUS_LABEL[q.status]}</i>
+                      {schedules?.[q.ref] ? <LevelBadge level={schedules[q.ref].level} title={schedules[q.ref].text} /> : null}
                     </span>
                   </Link>
                 </li>

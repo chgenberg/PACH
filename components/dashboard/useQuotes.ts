@@ -47,5 +47,14 @@ export function useQuotes(opts: { poll?: number } = {}) {
     return true;
   }, []);
 
-  return { quotes, error, patch };
+  const reload = useCallback(
+    () =>
+      fetch("/api/dashboard/quotes", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => setQuotes(j.quotes ?? []))
+        .catch(() => {}),
+    [],
+  );
+
+  return { quotes, error, patch, reload };
 }

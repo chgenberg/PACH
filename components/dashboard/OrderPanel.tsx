@@ -1,106 +1,232 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { QuotePatch } from "@/components/dashboard/useQuotes";
 import { readLogoFile } from "@/components/readLogoFile";
-import type { PurchaseOrder } from "@/lib/purchaseOrders";
+import { sek } from "@/lib/pricing";
+import { PO_LABEL, type PoView, rollup } from "@/lib/purchasingTypes";
 import { ORDER_STAGES, type QuoteView, STAGE_LABEL } from "@/lib/quoteTypes";
 
 const when = (iso: string) => new Date(iso).toLocaleString("sv-SE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-const day = (isoDate: string) => new Date(`${isoDate}T12:00:00`).toLocaleDateString("sv-SE", { day: "numeric", month: "short" });
+const day = (isoDate: string) => new Date(`${isoDate}T12:00:00`).toLocaleDateString("sv-SE", { weekday: "short", day: "numeric", month: "short" });
 
-type SupplierStatus = {
-  number: string;
-  label: string;
-  shipBy: string;
-  proposedDate?: string;
-  tracking?: string;
-  issues: { productId: string; name: string; label: string; note: string; replacement?: string; date?: string }[];
-};
+/** One purchase order per supplier: checks against the terms, send, the supplier's answers and the log. */
+function PurchaseOrders({ quote, onChanged }: { quote: QuoteView; onChanged: () => void }) {
+  const [pos, setPos] = useState<PoView[] | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const [mail, setMail] = useState<string | null>(null);
+  const [log, setLog] = useState<string | null>(null);
+  const [tracking, setTracking] = useState<Record<string, string>>({});
 
-/** New Wave Group's side of the order: their status, proposed dates and flags PACH has to answer. */
-function SupplierBlock({ refNo, stage }: { refNo: string; stage?: string }) {
-  const [status, setStatus] = useState<SupplierStatus | null>(null);
-  const load = () =>
-    fetch(`/api/supplier/orders?ref=${refNo}`, { cache: "no-store" })
-      .then((r) => r.json())
-      .then((j) => setStatus(j.status ?? null))
-      .catch(() => {});
+  const load = useCallback(
+    () =>
+      fetch(`/api/dashboard/quotes/${quote.ref}/purchase`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => {
+          if (j.orders) setPos(j.orders);
+          else setError(j.error || "Kunde inte läsa inköpsordrarna.");
+        })
+        .catch(() => setError("Kunde inte läsa inköpsordrarna.")),
+    [quote.ref],
+  );
+
+  // New Wave Group updates the order in its portal – poll so their steps show up here directly.
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when PACH moves the order
-  }, [refNo, stage]);
-  if (!status) return null;
-  const resolve = async (productId: string) => {
-    await fetch(`/api/supplier/orders/${status.number}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "resolve", productId }) });
+    const t = setInterval(() => {
+      if (!document.hidden) void load();
+    }, 8000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const act = async (key: string, body: Record<string, unknown>) => {
+    setBusy(key);
+    setError("");
+    try {
+      const res = await fetch(`/api/dashboard/quotes/${quote.ref}/purchase`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || "Något gick fel.");
+      setPos(j.orders);
+      setMail(null);
+      onChanged();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Något gick fel.");
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const resolve = async (supplierNumber: string, productId: string) => {
+    await fetch(`/api/supplier/orders/${supplierNumber}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "resolve", productId }) });
     void load();
   };
+
+  const drafts = (pos ?? []).filter((p) => p.status === "draft");
+
   return (
-    <div className="drawer-block">
-      <p className="drawer-label">
-        New Wave Group <span>{status.label}</span>
-      </p>
-      <p className="drawer-note">
-        Skickas senast {day(status.proposedDate ?? status.shipBy)}
-        {status.proposedDate ? " (nytt datum från leverantören)" : ""}
-        {status.tracking ? ` · spårning ${status.tracking}` : ""}
-      </p>
-      {status.issues.map((i) => (
-        <p key={i.productId} className="drawer-note po-warn">
-          <b>{i.name}: {i.label}.</b> {i.note}
-          {i.replacement ? ` Ersättare: ${i.replacement}.` : ""}
-          {i.date ? ` Klarar ${day(i.date)}.` : ""}{" "}
-          <button type="button" className="cz-link" onClick={() => void resolve(i.productId)}>
-            Markera löst
-          </button>
-        </p>
+    <div className="drawer-block po">
+      <p className="drawer-label">Inköpsordrar</p>
+      {pos === null && !error ? <p className="drawer-note">Tar fram inköpsordrarna…</p> : null}
+      {pos ? <p className="po-rollup">{rollup(pos)}</p> : null}
+      {drafts.length > 1 ? (
+        <button type="button" className="drawer-save po-all" disabled={Boolean(busy)} onClick={() => void act("all", { action: "sendAll" })}>
+          {busy === "all" ? "Skickar…" : `Skicka alla ${drafts.length} utkast`}
+        </button>
+      ) : null}
+      {error ? <p className="brandbar-err">{error}</p> : null}
+
+      {pos?.map((p) => (
+        <div key={p.number} className={`po-card po-s-${p.status}`} id={`po-${p.number}`}>
+          <div className="po-top">
+            <span className="po-sup">
+              <i style={{ background: p.mark }} aria-hidden />
+              <b>{p.supplier}</b>
+              <em>{p.channel === "portal" ? "Portal" : "E-post"}</em>
+            </span>
+            <span className="po-pill">{PO_LABEL[p.status]}</span>
+          </div>
+          <small className="po-meta">
+            {p.number} · {p.units} st · inköp {sek(p.value)} · {p.status === "delivered" ? "levererad" : `beräknat utskick ${day(p.shipBy)}`}
+            {p.proposedDate ? " (nytt datum från leverantören)" : ""}
+            {p.tracking ? ` · spårning ${p.tracking}` : ""}
+          </small>
+          <ul className="po-lines">
+            {p.lines.map((l) => (
+              <li key={l.productId}>
+                {l.qty} st {l.name}, {l.color.toLowerCase()} · {l.method}
+              </li>
+            ))}
+          </ul>
+          <ul className="po-checks">
+            {p.checks.map((c, i) => (
+              <li key={i} className={`is-${c.tone}`}>
+                {c.text}
+              </li>
+            ))}
+            {p.issues.map((i) => (
+              <li key={i.productId} className="is-warn">
+                <b>
+                  {i.name}: {i.label}.
+                </b>{" "}
+                {i.note}
+                {i.replacement ? ` Ersättare: ${i.replacement}.` : ""}{" "}
+                <button type="button" className="cz-link" onClick={() => p.supplierNumber && void resolve(p.supplierNumber, i.productId)}>
+                  Markera löst
+                </button>
+              </li>
+            ))}
+          </ul>
+
+          {mail === p.number && p.email ? (
+            <div className="po-mail">
+              <small>Till: {p.email.to}</small>
+              <small>Ämne: {p.email.subject}</small>
+              <p>{p.email.body}</p>
+              <div className="po-files">
+                {p.email.attachments.map((a) => (
+                  <span key={a}>📎 {a}</span>
+                ))}
+              </div>
+              {p.status === "draft" ? (
+                <div className="po-actions">
+                  <button type="button" className="drawer-remove" onClick={() => setMail(null)}>
+                    Avbryt
+                  </button>
+                  <button type="button" className="drawer-save" disabled={Boolean(busy)} onClick={() => void act(p.number, { action: "send", number: p.number })}>
+                    {busy === p.number ? "Skickar…" : "Skicka mejlet"}
+                  </button>
+                </div>
+              ) : null}
+              <small className="po-sim">E-posten är simulerad i demon.</small>
+            </div>
+          ) : null}
+
+          <div className="po-actions">
+            {p.status === "draft" && p.channel === "email" && mail !== p.number ? (
+              <button type="button" className="drawer-save" onClick={() => setMail(p.number)}>
+                Förhandsgranska och skicka
+              </button>
+            ) : null}
+            {p.status === "draft" && p.channel === "portal" ? (
+              <button type="button" className="drawer-save" disabled={Boolean(busy)} onClick={() => void act(p.number, { action: "send", number: p.number })}>
+                {busy === p.number ? "Skickar…" : `Skicka till ${p.short}-portalen`}
+              </button>
+            ) : null}
+            {p.next ? (
+              <>
+                {p.next.status === "shipped" ? (
+                  <input
+                    className="po-track"
+                    value={tracking[p.number] ?? ""}
+                    onChange={(e) => setTracking({ ...tracking, [p.number]: e.target.value })}
+                    placeholder="Spårningsnummer"
+                    aria-label="Spårningsnummer"
+                  />
+                ) : null}
+                <button type="button" className="drawer-save" disabled={Boolean(busy)} onClick={() => void act(p.number, { action: "advance", number: p.number, tracking: tracking[p.number] })}>
+                  {busy === p.number ? "Sparar…" : p.next.label}
+                </button>
+              </>
+            ) : null}
+            {p.portalHref ? (
+              <a className="cz-link" href={p.portalHref}>
+                Öppna i leverantörsportalen
+              </a>
+            ) : null}
+            {p.status !== "draft" && p.email && mail !== p.number ? (
+              <button type="button" className="cz-link" onClick={() => setMail(p.number)}>
+                Visa skickat mejl
+              </button>
+            ) : null}
+            {p.history.length ? (
+              <button type="button" className="cz-link" onClick={() => setLog(log === p.number ? null : p.number)}>
+                {log === p.number ? "Dölj händelser" : `Händelser (${p.history.length})`}
+              </button>
+            ) : null}
+          </div>
+          {p.channel === "portal" && p.status !== "draft" && p.status !== "delivered" ? <small className="po-meta">{p.supplier} uppdaterar ordern i sin portal – stegen syns här direkt.</small> : null}
+
+          {log === p.number ? (
+            <ol className="po-log">
+              {[...p.history].reverse().map((h, i) => (
+                <li key={`${h.at}-${i}`}>
+                  <time>{when(h.at)}</time>
+                  <span className={`po-by is-${h.by === "pach" ? "pach" : "sup"}`}>{h.by === "pach" ? "PACH" : p.short}</span>
+                  {h.text}
+                </li>
+              ))}
+            </ol>
+          ) : null}
+        </div>
       ))}
-      <a className="cz-link" href={`/leverantor/ordrar?open=${status.number}`}>
-        Öppna i leverantörsportalen
-      </a>
+      {pos?.length ? (
+        <a className="drawer-remove po-dl" href={`/api/dashboard/quotes/${quote.ref}/po`}>
+          Ladda ner alla ordrar och tryckfiler (ZIP)
+        </a>
+      ) : null}
     </div>
   );
 }
 
-export function OrderPanel({ quote, patch }: { quote: QuoteView; patch: (ref: string, body: QuotePatch) => Promise<boolean> }) {
-  const [orders, setOrders] = useState<PurchaseOrder[] | null>(null);
-  const [fileCount, setFileCount] = useState(0);
-  const [poError, setPoError] = useState("");
+export function OrderPanel({ quote, patch, onChanged }: { quote: QuoteView; patch: (ref: string, body: QuotePatch) => Promise<boolean>; onChanged: () => void }) {
   const [note, setNote] = useState("");
   const [tracking, setTracking] = useState(quote.order?.tracking ?? "");
   const [photo, setPhoto] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const approved = quote.status === "godkand" || quote.status === "fakturerad";
 
-  useEffect(() => {
-    if (!approved) return;
-    let live = true;
-    fetch(`/api/dashboard/quotes/${quote.ref}/po?format=json`, { cache: "no-store" })
-      .then(async (r) => {
-        const j = await r.json();
-        if (!live) return;
-        if (!r.ok) throw new Error(j.error);
-        setOrders(j.orders);
-        setFileCount(j.files.length);
-      })
-      .catch((e) => live && setPoError(e instanceof Error ? e.message : "Kunde inte läsa inköpsordrarna."));
-    return () => {
-      live = false;
-    };
-  }, [approved, quote.ref, quote.collect?.entries.length]);
-
   if (!approved) {
     return (
       <div className="drawer-block">
         <p className="drawer-label">Inköpsordrar</p>
-        <p className="drawer-note">Skapas när offerten är godkänd – av kunden via granskningslänken eller här.</p>
+        <p className="drawer-note">Skapas när offerten är godkänd – en per leverantör, kontrollerad mot leverantörens villkor.</p>
       </div>
     );
   }
 
   const current = quote.order ? ORDER_STAGES.indexOf(quote.order.stage) : -1;
   const next = ORDER_STAGES[current + 1];
-  const unset = (orders ?? []).flatMap((o) => o.lines.flatMap((l) => l.rows)).filter((r) => r.size === "Ej angiven").reduce((s, r) => s + r.qty, 0);
 
   const advance = async () => {
     if (!next) return;
@@ -115,42 +241,10 @@ export function OrderPanel({ quote, patch }: { quote: QuoteView; patch: (ref: st
 
   return (
     <>
-      <div className="drawer-block po">
-        <p className="drawer-label">Inköpsordrar</p>
-        {poError ? <p className="brandbar-err">{poError}</p> : null}
-        {orders === null && !poError ? <p className="drawer-note">Tar fram ordrar och tryckfiler…</p> : null}
-        {orders?.map((o) => (
-          <div key={o.number} className="po-card">
-            <div>
-              <b>{o.number}</b>
-              <small>
-                {o.supplier} · {o.units} st · {o.lines.length} {o.lines.length === 1 ? "rad" : "rader"}
-              </small>
-            </div>
-            <ul>
-              {o.lines.map((l) => (
-                <li key={l.no}>
-                  {l.name} – {l.rows.map((r) => `${r.size} ${r.qty}`).join(", ")}
-                  {l.positions.length ? ` · ${l.positions.length} tryckfil${l.positions.length === 1 ? "" : "er"}` : ""}
-                  {l.names ? ` · ${l.names.count} namn` : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-        {orders ? <p className="drawer-note">{orders.length} {orders.length === 1 ? "inköpsorder" : "inköpsordrar"} · {fileCount} filer i ZIP: PDF per leverantör, tryckfiler i 300 dpi, namnlistor och mockups.</p> : null}
-        {unset ? <p className="drawer-note po-warn">{unset} plagg saknar storlek – skicka storleksinsamlingen eller bekräfta med kunden.</p> : null}
-        {orders ? (
-          <a className="drawer-save po-dl" href={`/api/dashboard/quotes/${quote.ref}/po`}>
-            Ladda ner ordrar och tryckfiler
-          </a>
-        ) : null}
-      </div>
-
-      <SupplierBlock refNo={quote.ref} stage={quote.order?.stage} />
+      <PurchaseOrders quote={quote} onChanged={onChanged} />
 
       <div className="drawer-block">
-        <p className="drawer-label">Leverans</p>
+        <p className="drawer-label">Leverans till kunden</p>
         <ol className="track">
           {ORDER_STAGES.map((s, i) => {
             const ev = [...(quote.order?.history ?? [])].reverse().find((h) => h.stage === s);
@@ -190,6 +284,7 @@ export function OrderPanel({ quote, patch }: { quote: QuoteView; patch: (ref: st
         ) : (
           <p className="drawer-note">Levererad{quote.order?.tracking ? ` · spårning ${quote.order.tracking}` : ""}.</p>
         )}
+        <p className="drawer-note">Steget flyttas automatiskt när alla inköpsordrar är i produktion, skickade eller levererade.</p>
       </div>
     </>
   );

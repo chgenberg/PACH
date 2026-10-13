@@ -3,7 +3,20 @@
  * får inköpsordrar som PDF via e-post. Datum anges i dagar från i dag så att demon alltid ser aktuell ut.
  */
 
+import type { Method } from "@/lib/marking";
+
 export type Integration = "portal" | "email";
+
+/** The terms purchase orders are checked against: lead time per print method, proofs and freight. */
+export type SupplierRules = {
+  /** Working days from confirmed order (and approved proof) to dispatch, per print method. */
+  leadDays: Record<Method, number>;
+  proof: { kind: "none" | "email" | "portal"; days: number; text: string };
+  freeFreightFrom: number | null;
+  freight: number;
+  carrier: string;
+  shipDays: number;
+};
 
 export type SupplierProfile = {
   id: string;
@@ -28,6 +41,7 @@ export type SupplierProfile = {
     /** Days since the last price list arrived. */
     priceListAge: number;
   };
+  rules: SupplierRules;
   /** Share of orders delivered on the promised day, last 12 months. */
   onTime: number;
   note?: string;
@@ -54,6 +68,14 @@ export const SUPPLIER_PROFILES: SupplierProfile[] = [
       contractDays: 240,
       priceListAge: 40,
     },
+    rules: {
+      leadDays: { screentryck: 7, transfer: 4, brodyr: 9, gravyr: 5, digitaltryck: 5 },
+      proof: { kind: "none", days: 0, text: "Trycker efter PACH:s godkända 3D-korrektur" },
+      freeFreightFrom: 3000,
+      freight: 190,
+      carrier: "PostNord",
+      shipDays: 2,
+    },
     onTime: 0.96,
   },
   {
@@ -75,6 +97,14 @@ export const SUPPLIER_PROFILES: SupplierProfile[] = [
       bonus: "Ingen bonus – fasta nettopriser",
       contractDays: 38,
       priceListAge: 290,
+    },
+    rules: {
+      leadDays: { screentryck: 9, transfer: 8, brodyr: 12, gravyr: 8, digitaltryck: 8 },
+      proof: { kind: "email", days: 2, text: "Tryckpartnern skickar korrektur per e-post, ca 2 dagar" },
+      freeFreightFrom: 5000,
+      freight: 245,
+      carrier: "DHL Freight",
+      shipDays: 2,
     },
     onTime: 0.91,
     note: "Bekräftar ordrar per e-post inom ett dygn.",
@@ -98,6 +128,14 @@ export const SUPPLIER_PROFILES: SupplierProfile[] = [
       bonus: "2 % vid mer än 200 000 kr per kvartal",
       contractDays: 400,
       priceListAge: 60,
+    },
+    rules: {
+      leadDays: { screentryck: 12, transfer: 12, brodyr: 14, gravyr: 10, digitaltryck: 11 },
+      proof: { kind: "email", days: 1, text: "Korrektur per e-post inom en dag" },
+      freeFreightFrom: null,
+      freight: 350,
+      carrier: "DB Schenker",
+      shipDays: 3,
     },
     onTime: 0.88,
     note: "Choklad skickas bara mån–ons för att inte bli liggande över helgen.",

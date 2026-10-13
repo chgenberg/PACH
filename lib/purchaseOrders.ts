@@ -11,6 +11,7 @@ import { estimate, fmtDay } from "@/lib/delivery";
 import { isBrandbookHost } from "@/lib/host";
 import { colorsOf, type LogoDesign, METHOD_INFO, type Placement, zonesFor } from "@/lib/marking";
 import type { StoredQuote, StoredLine } from "@/lib/quoteTypes";
+import { poNumber } from "@/lib/poStore";
 import { profileById } from "@/lib/supplierProfiles";
 import { isNwg, SUPPLIER } from "@/lib/supplierTypes";
 import { analysisLogo } from "@/lib/siteAnalysis";
@@ -191,8 +192,8 @@ export async function buildPurchaseOrders(q: StoredQuote): Promise<{ orders: Pur
     groups.set(supplierId, [...(groups.get(supplierId) ?? []), po]);
   }
 
-  const orders: PurchaseOrder[] = [...groups.entries()].map(([supplierId, lines], i) => ({
-    number: `${q.ref.replace("PACH", "PO")}-${i + 1}`,
+  const orders: PurchaseOrder[] = [...groups.entries()].map(([supplierId, lines]) => ({
+    number: poNumber(q.ref, profileById(supplierId)?.short ?? supplierId),
     supplierId,
     supplier: suppliers.get(supplierId) ?? supplierId,
     lines,

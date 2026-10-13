@@ -1,4 +1,5 @@
 import type { Family } from "@/lib/catalog";
+import { isWorkday } from "@/lib/holidays";
 import { type LogoDesign, METHOD_INFO, type Method, methodsFor } from "@/lib/marking";
 
 /**
@@ -13,13 +14,13 @@ const NAMES_DAYS = 1;
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
+/** Working days skip weekends and Swedish holidays. */
 export function addWorkdays(from: Date, days: number) {
   const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate()));
   let left = days;
   while (left > 0) {
     d.setUTCDate(d.getUTCDate() + 1);
-    const wd = d.getUTCDay();
-    if (wd !== 0 && wd !== 6) left--;
+    if (isWorkday(d)) left--;
   }
   return d;
 }
@@ -29,10 +30,23 @@ export function subWorkdays(from: Date, days: number) {
   let left = days;
   while (left > 0) {
     d.setUTCDate(d.getUTCDate() - 1);
-    const wd = d.getUTCDay();
-    if (wd !== 0 && wd !== 6) left--;
+    if (isWorkday(d)) left--;
   }
   return d;
+}
+
+/** Working days from `from` to `to` (YYYY-MM-DD); negative when `to` has passed, 0 on the day itself. */
+export function workdaysBetween(from: string, to: string) {
+  if (from === to) return 0;
+  const sign = to > from ? 1 : -1;
+  const [a, b] = sign > 0 ? [from, to] : [to, from];
+  const d = new Date(`${a}T00:00:00Z`);
+  let n = 0;
+  while (d.toISOString().slice(0, 10) < b) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (isWorkday(d)) n++;
+  }
+  return sign * n;
 }
 
 /** The last day an order can be approved and still arrive before the event – the slowest line decides. */

@@ -127,7 +127,7 @@ export default function InvoicePage() {
                       <div key={l.productId} className="il">
                         <span>
                           <b>{l.name}</b>
-                          <small>inkl. tryck · tryckstart {sek(l.setup)}</small>
+                          <small>{l.extra ? "Extra post · kostnad enligt offerten" : `inkl. tryck · tryckstart ${sek(l.setup)}`}</small>
                         </span>
                         <span className="r">{l.qty}</span>
                         <span className="r">{sek(l.unitInclPrint)}</span>
@@ -138,7 +138,7 @@ export default function InvoicePage() {
                             min={0}
                             max={100}
                             defaultValue={l.kostPct}
-                            disabled={Boolean(q.invoice.invoiceNumber)}
+                            disabled={Boolean(q.invoice.invoiceNumber) || l.extra}
                             onBlur={(e) => Number(e.target.value) !== l.kostPct && void patch(q.ref, { kost: { productId: l.productId, pct: Number(e.target.value) } })}
                             aria-label={`Kost i procent för ${l.name}`}
                           />

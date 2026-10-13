@@ -2,12 +2,13 @@ import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { cacheKey, storeImage } from "@/lib/brandCache";
 import { type Family, familyById, families, fromPrice, moqOf } from "@/lib/catalog";
+import { defaultMethodTerms, defaultUnitCost, printCost } from "@/lib/costing";
 import { BASE_COLOR, colorName } from "@/lib/colors";
 import { addWorkdays, estimate, SHIPPING_DAYS, subWorkdays } from "@/lib/delivery";
-import { colorsOf, type LogoDesign, METHOD_INFO, METHODS, type Method, NAME_SETUP, NAME_UNIT, placementRows } from "@/lib/marking";
-import { PRINT_PER_UNIT, PRINT_SETUP } from "@/lib/pricing";
+import { type LogoDesign, METHOD_INFO, METHODS, type Method, placementRows } from "@/lib/marking";
+import { poNumber, readPoStore } from "@/lib/poStore";
 import { skuRows } from "@/lib/purchaseOrders";
-import { getQuote, listQuotes, ORDER_STAGES, type OrderStage, saveQuote } from "@/lib/quotes";
+import { getQuote, listQuotes, type OrderStage, seededOrder } from "@/lib/quotes";
 import type { StoredLine, StoredQuote } from "@/lib/quoteTypes";
 import {
   type CatalogItem,
@@ -70,18 +71,13 @@ const hash = (s: string) => {
 
 export const nwgFamilies = () => families.filter((f) => isNwg(f.id));
 
-const defaultTerms = (f: Family): ProductTerms => ({ price: Math.round(fromPrice(f) * 0.6), moq: moqOf(f), leadDays: 2 });
-
-const defaultMethods = () =>
-  Object.fromEntries(
-    METHODS.map((m) => [m, { setupPerColor: Math.round(METHOD_INFO[m].setupPerColor * 0.7), unitPerColor: Math.round(METHOD_INFO[m].unitPerColor * 0.7 * 10) / 10 }]),
-  ) as Record<Method, MethodTerms>;
+const defaultTerms = (f: Family): ProductTerms => ({ price: defaultUnitCost(f), moq: moqOf(f), leadDays: 2 });
 
 type StoredPrices = { products?: Record<string, Partial<ProductTerms>>; methods?: Partial<Record<Method, Partial<MethodTerms>>>; pending?: boolean; sentAt?: string };
 
 export async function priceList(): Promise<PriceList> {
   const saved = await readJson<StoredPrices>("prices.json", {});
-  const base = defaultMethods();
+  const base = defaultMethodTerms();
   return {
     products: Object.fromEntries(nwgFamilies().map((f) => [f.id, { ...defaultTerms(f), ...saved.products?.[f.id] }])),
     methods: Object.fromEntries(METHODS.map((m) => [m, { ...base[m], ...saved.methods?.[m] }])) as Record<Method, MethodTerms>,
@@ -153,24 +149,6 @@ export async function saveStock(rows: { sku: string; stock: number }[]) {
   }
   await writeJson("stock.json", saved);
   return changed;
-}
-
-/* ---------- print cost to the supplier ---------- */
-
-function printCost(d: LogoDesign | undefined, qty: number, methods: Record<Method, MethodTerms>) {
-  if (!d) return { perUnit: Math.round(PRINT_PER_UNIT * 0.7), setup: Math.round(PRINT_SETUP * 0.7) };
-  const tier = qty >= 250 ? 0.7 : qty >= 100 ? 0.8 : qty >= 50 ? 0.9 : 1;
-  const parts = [d, ...(d.extra ?? [])].map((p) => {
-    const m = methods[p.method];
-    const channels = p.method === "digitaltryck" ? 1 : colorsOf(p);
-    const size = p.method === "brodyr" && p.sizeCm > 8 ? 1.4 : 1;
-    return { perUnit: m.unitPerColor * channels * tier * size, setup: m.setupPerColor * channels };
-  });
-  const names = d.names?.list.length ? { perUnit: NAME_UNIT * 0.7, setup: NAME_SETUP * 0.7 } : { perUnit: 0, setup: 0 };
-  return {
-    perUnit: Math.round(parts.reduce((s, p) => s + p.perUnit, 0) + names.perUnit),
-    setup: Math.round(parts.reduce((s, p) => s + p.setup, 0) + names.setup),
-  };
 }
 
 /* ---------- demo orders from other PACH customers ---------- */
@@ -340,7 +318,6 @@ function stageFromQuote(q: StoredQuote): SupplierStage {
   return q.status === "fakturerad" ? "levererad" : "ny";
 }
 
-const TO_PACH: Partial<Record<SupplierStage, OrderStage>> = { bekraftad: "bekraftad", "i-tryck": "i-tryck", packad: "kontroll", skickad: "skickad", levererad: "levererad" };
 
 /** Textile demo orders get a believable size spread; everything else is one size. */
 function demoRows(line: StoredLine, f: Family) {
@@ -370,8 +347,12 @@ async function drafts(): Promise<Draft[]> {
     const number = numberOf(s.ref);
     out.push({ number, ref: s.ref, customer: s.company, city: s.city, createdAt: s.createdAt, needBy: s.needBy, shipBy: "", brands: [], source: "demo", state: saved[number] ?? s.state(), raw });
   }
+  const poStore = await readPoStore();
   for (const q of await listQuotes()) {
     if (q.status !== "godkand" && q.status !== "fakturerad") continue;
+    // NWG only sees orders PACH has sent; orders approved in the demo data and orders NWG already worked on count as sent.
+    const sentAt = poStore[poNumber(q.ref, SUPPLIER.short)]?.sentAt;
+    if (!seededOrder(q.ref) && !sentAt && !saved[numberOf(q.ref)]) continue;
     const raw = q.lines.flatMap((line) => {
       const f = familyById(line.productId);
       if (!f || !isNwg(f.id)) return [];
@@ -380,16 +361,17 @@ async function drafts(): Promise<Draft[]> {
     if (!raw.length) continue;
     const number = numberOf(q.ref);
     const approvedAt = Object.values(q.share?.approvals ?? {}).map((a) => a.at).sort().at(-1) ?? q.createdAt;
+    const receivedAt = sentAt ?? approvedAt;
     out.push({
       number,
       ref: q.ref,
       customer: q.company,
-      createdAt: approvedAt,
+      createdAt: receivedAt,
       needBy: q.eventDate,
       shipBy: "",
       brands: [],
       source: "pach",
-      state: saved[number] ?? { stage: stageFromQuote(q), history: [received(approvedAt)], issues: {} },
+      state: saved[number] ?? { stage: seededOrder(q.ref) ? stageFromQuote(q) : "ny", history: [received(receivedAt)], issues: {} },
       raw,
     });
   }
@@ -533,17 +515,15 @@ export async function applyOrderAction(number: string, body: OrderAction): Promi
   return { order: (await getOrder(number)) ?? undefined };
 }
 
-/** The supplier's progress shows up on PACH's order and the customer's tracking, never moving it backwards. */
+/**
+ * The supplier's progress shows up on PACH's order and the customer's tracking, never moving it backwards.
+ * With several suppliers the order only moves when every purchase order has got that far.
+ */
 async function syncToPach(ref: string, state: SupplierOrderState, body: OrderAction) {
   if (body.action !== "advance") return;
-  const target = TO_PACH[state.stage];
-  const q = await getQuote(ref);
-  if (!q || !target) return;
-  const current = q.order ? ORDER_STAGES.indexOf(q.order.stage) : -1;
-  if (ORDER_STAGES.indexOf(target) <= current) return;
-  const note = state.stage === "skickad" ? `${SUPPLIER.name}: skickad med ${state.carrier ?? "PostNord"}` : `Uppdaterat av ${SUPPLIER.name}`;
-  const history = [...(q.order?.history ?? []), { stage: target, at: new Date().toISOString(), note }];
-  await saveQuote({ ...q, order: { stage: target, history, tracking: state.tracking ?? q.order?.tracking } });
+  // Loaded on demand: purchasing reads this module's orders, so a static import would be circular.
+  const { syncOrderStage } = await import("@/lib/purchasing");
+  await syncOrderStage(ref, state.stage === "skickad" ? `${SUPPLIER.name}: skickad med ${state.carrier ?? "PostNord"}` : `Uppdaterat av ${SUPPLIER.name}`);
 }
 
 /** What PACH's own order view shows about the supplier's part of an order. */

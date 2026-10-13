@@ -1,11 +1,13 @@
 import type { QuoteLine } from "@/lib/pricing";
+import type { ExtraLine } from "@/lib/quoteTypes";
 
 /** Samma modell som Billboard Bees fakturaunderlag: Kost i % per rad, TB = belopp − kost. */
 export const DEFAULT_KOST_PCT = 60;
 export const VAT_RATE = 0.25;
 export const PAYMENT_DAYS = 30;
 
-export type InvoiceLine = QuoteLine & { kostPct: number; cost: number; tb: number };
+/** `extra` marks freight, express and other free lines – their cost is set on the offer, not as a percentage. */
+export type InvoiceLine = QuoteLine & { kostPct: number; cost: number; tb: number; extra?: boolean };
 
 export type InvoiceBasis = {
   lines: InvoiceLine[];
@@ -21,15 +23,36 @@ export type InvoiceBasis = {
 
 type Invoiceable = {
   priced: QuoteLine[];
+  extras?: ExtraLine[];
   invoice: { approved: boolean; invoiceNumber?: string; invoicedAt?: string; kost: Record<string, number> };
 };
 
+const pctOf = (cost: number, total: number) => (total ? Math.round((cost / total) * 100) : 0);
+
 export function invoiceBasis(q: Invoiceable): InvoiceBasis {
-  const lines = q.priced.map((l) => {
-    const kostPct = q.invoice.kost[l.productId] ?? DEFAULT_KOST_PCT;
-    const cost = Math.round((l.lineTotal * kostPct) / 100);
-    return { ...l, kostPct, cost, tb: l.lineTotal - cost };
+  const lines: InvoiceLine[] = q.priced.map((l) => {
+    // A percentage typed in on the invoice wins; otherwise the supplier cost saved with the offer, else the default.
+    const manual = q.invoice.kost[l.productId];
+    const cost = manual !== undefined ? Math.round((l.lineTotal * manual) / 100) : l.cost ?? Math.round((l.lineTotal * DEFAULT_KOST_PCT) / 100);
+    return { ...l, kostPct: manual ?? pctOf(cost, l.lineTotal), cost, tb: l.lineTotal - cost };
   });
+  for (const e of q.extras ?? []) {
+    lines.push({
+      productId: `extra:${e.id}`,
+      name: e.label,
+      spec: "Extra post",
+      qty: 1,
+      unitProduct: e.amount,
+      printPerUnit: 0,
+      unitInclPrint: e.amount,
+      setup: 0,
+      lineTotal: e.amount,
+      cost: e.cost,
+      kostPct: pctOf(e.cost, e.amount),
+      tb: e.amount - e.cost,
+      extra: true,
+    });
+  }
   const net = lines.reduce((s, l) => s + l.lineTotal, 0);
   const cost = lines.reduce((s, l) => s + l.cost, 0);
   const vat = Math.round(net * VAT_RATE);

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { type Brandbook, FONTS, useBrandbook } from "@/components/dashboard/brandbook";
+import { OfferSettingsCards } from "@/components/dashboard/OfferSettingsCards";
 import { hostOk, normalizeHost } from "@/lib/host";
 import { METHOD_INFO, METHODS } from "@/lib/marking";
 import { sek } from "@/lib/pricing";
@@ -68,7 +69,7 @@ export default function SettingsPage() {
       <div className="dash-head">
         <div>
           <h1>Inställningar</h1>
-          <p>Företagsuppgifter, brandbook och offertvillkor. Brandbooken används i designverktyget.</p>
+          <p>Företagsuppgifter, brandbook, din profil, offertmallar och villkor. Brandbooken används i designverktyget.</p>
         </div>
       </div>
 
@@ -160,6 +161,8 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <OfferSettingsCards />
+
       <section className="card">
         <h2>Offertvillkor</h2>
         <p className="drawer-note">Villkoren skrivs ut på varje offert-PDF, både från sajten och härifrån.</p>
@@ -229,7 +232,7 @@ export default function SettingsPage() {
               .catch(() => setMsg("Brandbooken sparades, men inte villkoren."));
           }}
         >
-          Spara
+          Spara företag, brandbook och villkor
         </button>
       </div>
     </div>

@@ -4,6 +4,8 @@ import { familyById, families } from "@/lib/catalog";
 import { fmtDay } from "@/lib/delivery";
 import { sek } from "@/lib/pricing";
 import { listQuotes } from "@/lib/quotes";
+import { applyPoAction, poContext, purchaseOrdersFor } from "@/lib/purchasing";
+import { PO_LABEL, type PoView } from "@/lib/purchasingTypes";
 import { acceptPrices, applyOrderAction, catalog, listOrders, priceList } from "@/lib/supplier";
 import { type SupplierAction, type SupplierOrderRow, SUPPLIER_PROFILES, type SupplierView } from "@/lib/supplierProfiles";
 import { ISSUE_LABEL, isNwg, SUPPLIER, SUPPLIER_STAGE_LABEL, SUPPLIER_STAGES } from "@/lib/supplierTypes";
@@ -39,7 +41,9 @@ const supplierOf = (productId: string) => (isNwg(productId) ? SUPPLIER.id : (fam
 const ago = (iso: string) => Math.floor((Date.now() - new Date(iso).getTime()) / DAY);
 
 export async function supplierViews(): Promise<SupplierView[]> {
-  const [state, quotes, nwgOrders, prices, items] = await Promise.all([readState(), listQuotes(), listOrders(), priceList(), catalog()]);
+  const [state, quotes, nwgOrders, prices, items, ctx] = await Promise.all([readState(), listQuotes(), listOrders(), priceList(), catalog(), poContext()]);
+  const pos = new Map<string, PoView[]>();
+  for (const q of quotes) if (q.status === "godkand" || q.status === "fakturerad") pos.set(q.ref, await purchaseOrdersFor(q, ctx));
   const now = Date.now();
   const today = iso(new Date());
 
@@ -61,6 +65,18 @@ export async function supplierViews(): Promise<SupplierView[]> {
         status: SUPPLIER_STAGE_LABEL[o.state.stage],
         href: `/leverantor/ordrar?open=${o.number}`,
       }));
+      for (const q of quotes) {
+        const po = (pos.get(q.ref) ?? []).find((p) => p.supplierId === profile.id && p.status === "draft");
+        if (!po) continue;
+        actions.push({
+          id: `po-${po.number}`,
+          tone: "urgent",
+          title: `Skicka inköpsorder till NWG – ${q.company}`,
+          detail: `${po.lines.map((l) => `${l.name} ${l.qty} st`).join(", ")}. NWG får ordern direkt i sin portal.`,
+          cta: { label: "Skicka till portalen", kind: "po-send", payload: { ref: q.ref, number: po.number } },
+          secondary: { label: "Öppna ordern", href: `/dashboard/offerter?open=${q.ref}` },
+        });
+      }
       for (const o of nwgOrders) {
         const portal = `/leverantor/ordrar?open=${o.number}`;
         const open = SUPPLIER_STAGES.indexOf(o.state.stage) < SUPPLIER_STAGES.indexOf("skickad");
@@ -143,42 +159,39 @@ export async function supplierViews(): Promise<SupplierView[]> {
       }
     } else {
       for (const q of quotes) {
-        if (q.status !== "godkand" && q.status !== "fakturerad") continue;
-        const lines = q.priced.filter((l) => supplierOf(l.productId) === profile.id);
-        if (!lines.length) continue;
-        const key = `${q.ref}:${profile.id}`;
+        const po = (pos.get(q.ref) ?? []).find((p) => p.supplierId === profile.id);
+        if (!po) continue;
+        const sentAt = po.history.find((h) => h.status === "sent")?.at;
         const approvedAt = Object.values(q.share?.approvals ?? {}).map((a) => a.at).sort().at(-1) ?? q.createdAt;
-        const sent = state.poSent[key];
-        const confirmed = state.poConfirmed[key];
-        const done = q.status === "fakturerad";
-        const units = lines.reduce((s, l) => s + l.qty, 0);
-        orders.push({
-          key,
-          ref: q.ref,
-          customer: q.company,
-          date: approvedAt,
-          units,
-          value: Math.round(lines.reduce((s, l) => s + l.lineTotal, 0) * 0.6),
-          status: done ? "Levererad" : confirmed ? "Bekräftad" : sent ? "Skickad till leverantör" : "Ej skickad",
-          href: `/dashboard/offerter?open=${q.ref}`,
-        });
-        const what = lines.map((l) => `${l.name} ${l.qty} st`).join(", ");
-        if (!done && !sent) {
+        orders.push({ key: po.number, ref: q.ref, customer: q.company, date: approvedAt, units: po.units, value: po.value, status: PO_LABEL[po.status], href: `/dashboard/offerter?open=${q.ref}` });
+        const what = po.lines.map((l) => `${l.name} ${l.qty} st`).join(", ");
+        const warns = po.checks.filter((c) => c.tone === "warn").map((c) => c.text);
+        const extra = warns.length ? ` Obs: ${warns.join("; ")}.` : "";
+        if (po.status === "draft") {
           actions.push({
-            id: `po-${key}`,
+            id: `po-${po.number}`,
             tone: "urgent",
             title: `Skicka inköpsorder – ${q.company}`,
-            detail: `${what}. Godkänd ${fmtDay(approvedAt.slice(0, 10))}. ${profile.name} får ordern som PDF med tryckfiler till ${profile.contact.email}.`,
-            cta: { label: "Markera skickad", kind: "po-sent", payload: { key } },
-            secondary: { label: "Ladda ner order och tryckfiler", href: `/api/dashboard/quotes/${q.ref}/po` },
+            detail: `${what}. Godkänd ${fmtDay(approvedAt.slice(0, 10))}. Går som e-post med PDF och tryckfiler till ${profile.contact.email}.${extra}`,
+            cta: { label: "Skicka inköpsorder", kind: "po-send", payload: { ref: q.ref, number: po.number } },
+            secondary: { label: "Förhandsgranska", href: `/dashboard/offerter?open=${q.ref}` },
           });
-        } else if (!done && !confirmed) {
+        } else if (po.status === "sent" && po.next) {
           actions.push({
-            id: `confirm-${key}`,
-            tone: ago(sent!) >= 1 ? "urgent" : "normal",
+            id: `confirm-${po.number}`,
+            tone: sentAt && ago(sentAt) >= 1 ? "urgent" : "normal",
             title: `Väntar på orderbekräftelse – ${q.company}`,
-            detail: `Skickad ${fmtDay(sent!.slice(0, 10))}. ${profile.note ?? ""}`.trim(),
-            cta: { label: "Markera bekräftad", kind: "po-confirmed", payload: { key } },
+            detail: `Skickad ${sentAt ? fmtDay(sentAt.slice(0, 10)) : ""}. ${profile.note ?? ""}`.trim(),
+            cta: { label: po.next.label, kind: "po-advance", payload: { ref: q.ref, number: po.number } },
+          });
+        } else if (po.status === "proof" && po.next) {
+          actions.push({
+            id: `proof-${po.number}`,
+            tone: "urgent",
+            title: `Korrektur väntar på godkännande – ${q.company}`,
+            detail: `${profile.name} har skickat korrektur för ${what}. Produktionen startar när det är godkänt.`,
+            cta: { label: po.next.label, kind: "po-advance", payload: { ref: q.ref, number: po.number } },
+            secondary: { label: "Öppna ordern", href: `/dashboard/offerter?open=${q.ref}` },
           });
         }
       }
@@ -261,14 +274,12 @@ export async function applySupplierAction(supplierId: string, kind: string, payl
     case "request-prices":
       state.priceRequested[supplierId] = at;
       break;
-    case "po-sent":
-      if (!payload.key?.endsWith(`:${supplierId}`)) return "Okänd order.";
-      state.poSent[payload.key] = at;
-      break;
-    case "po-confirmed":
-      if (!payload.key?.endsWith(`:${supplierId}`)) return "Okänd order.";
-      state.poConfirmed[payload.key] = at;
-      break;
+    case "po-send":
+    case "po-advance": {
+      if (!payload.ref || !payload.number?.endsWith(`-${profile.short}`)) return "Okänd inköpsorder.";
+      const res = await applyPoAction(payload.ref, { action: kind === "po-send" ? "send" : "advance", number: payload.number });
+      return res.error ?? "";
+    }
     default:
       return "Okänd åtgärd.";
   }

@@ -4,23 +4,27 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useCart } from "@/components/CartProvider";
 import { ProofGallery } from "@/components/ProofGallery";
 import { CollectPanel } from "@/components/dashboard/CollectPanel";
+import { MarginBadge } from "@/components/dashboard/MarginBadge";
 import { OrderPanel } from "@/components/dashboard/OrderPanel";
+import { useReorder } from "@/components/dashboard/useReorder";
+import { LevelBadge, ScheduleBlock, useSchedules } from "@/components/dashboard/useSchedules";
 import { fmtDate, STATUS_LABEL, useQuotes } from "@/components/dashboard/useQuotes";
 import { familyById } from "@/lib/catalog";
 import { BASE_COLOR, colorName } from "@/lib/colors";
 import { designSummary } from "@/lib/marking";
+import { invoiceBasis } from "@/lib/invoice";
 import { sek } from "@/lib/pricing";
-import { QUOTE_STATUSES, type QuoteStatus } from "@/lib/quoteTypes";
+import { isEditable, QUOTE_STATUSES, type QuoteStatus } from "@/lib/quoteTypes";
 
 const FILTERS: ("alla" | QuoteStatus)[] = ["alla", ...QUOTE_STATUSES];
 
 export default function QuotesPage() {
-  const { quotes, error, patch } = useQuotes();
-  const cart = useCart();
+  const { quotes, error, patch, reload } = useQuotes();
   const router = useRouter();
+  const reorder = useReorder();
+  const schedules = useSchedules(quotes);
   const [filter, setFilter] = useState<"alla" | QuoteStatus>("alla");
   const [open, setOpen] = useState<string | null>(null);
   useEffect(() => {
@@ -28,14 +32,6 @@ export default function QuotesPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the link from the overview names the quote to open
     if (ref) setOpen(ref);
   }, []);
-
-  /** Same products, designs and proofs in a new quote – for the customer who wants the same again. */
-  const reorder = (q: NonNullable<typeof quotes>[number]) => {
-    cart.clear();
-    if (q.host) cart.setBrand(q.host, q.brand ?? q.company);
-    for (const l of q.lines) cart.save(l.productId, { qty: l.qty, image: l.image, color: l.color, design: l.design, proofs: l.proofs });
-    router.push("/offert");
-  };
 
   const shown = useMemo(() => (quotes ?? []).filter((q) => filter === "alla" || q.status === filter), [quotes, filter]);
   const selected = quotes?.find((q) => q.ref === open) ?? null;
@@ -54,11 +50,16 @@ export default function QuotesPage() {
       <div className="dash-head">
         <div>
           <h1>Offerter</h1>
-          <p>Alla offerter som skapats på sajten. Godkända offerter går vidare till fakturaunderlaget.</p>
+          <p>Offerter från sajten och från offertbyggaren. Godkända offerter går vidare till fakturaunderlaget.</p>
         </div>
-        <Link href="/" className="dash-btn">
-          + Ny offert
-        </Link>
+        <div className="kp-head-actions">
+          <Link href="/dashboard/kalkyler/ny" className="dash-btn ghost">
+            + Ny kalkyl
+          </Link>
+          <Link href="/dashboard/offerter/bygg" className="dash-btn">
+            + Ny offert
+          </Link>
+        </div>
       </div>
 
       <div className="kpis">
@@ -92,7 +93,10 @@ export default function QuotesPage() {
           <button key={q.ref} type="button" className="tr" onClick={() => setOpen(q.ref)}>
             <span>
               <b>{q.ref}</b>
-              <small>{fmtDate(q.createdAt)}</small>
+              <small>
+                {fmtDate(q.createdAt)}
+                {q.origin ? <em className="kd-origin">{q.origin.by === "kund" ? "Önskemål" : "Ombeställning"}</em> : null}
+              </small>
             </span>
             <span>
               <b>{q.company}</b>
@@ -107,8 +111,9 @@ export default function QuotesPage() {
             <span className="r">
               <b>{sek(q.total)}</b>
             </span>
-            <span>
+            <span className="sch-cell">
               <i className={`badge badge-${q.status}`}>{STATUS_LABEL[q.status]}</i>
+              {schedules?.[q.ref] && schedules[q.ref].level !== "ok" ? <LevelBadge level={schedules[q.ref].level} title={schedules[q.ref].text} /> : null}
             </span>
           </button>
         ))}
@@ -129,6 +134,12 @@ export default function QuotesPage() {
                 {selected.ref} · {fmtDate(selected.createdAt)} · <i className={`badge badge-${selected.status}`}>{STATUS_LABEL[selected.status]}</i>
               </p>
               <p className="drawer-note">{[selected.phone, selected.host].filter(Boolean).join(" · ")}</p>
+              {selected.origin ? (
+                <p className="kd-origin-note">
+                  {selected.origin.by === "kund" ? `Önskemål från ${selected.origin.name ?? "kunden"} i kundportalen` : "Ny offert"} – samma som {selected.origin.fromRef}.
+                  {selected.origin.note ? ` ”${selected.origin.note}”` : ""}
+                </p>
+              ) : null}
             </div>
             <ul className="mini-lines">
               {selected.priced.map((l) => {
@@ -160,10 +171,70 @@ export default function QuotesPage() {
                 );
               })}
             </ul>
+            {selected.extras.length ? (
+              <ul className="mini-lines kp-mini-extras">
+                {selected.extras.map((e) => (
+                  <li key={e.id}>
+                    <span className="kp-extra-dot" aria-hidden>
+                      +
+                    </span>
+                    <span>
+                      <b>{e.label}</b>
+                      <small>Extra post</small>
+                    </span>
+                    <b>{sek(e.amount)}</b>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
             <div className="drawer-block mini-total">
               <span>Totalt exkl. moms</span>
               <strong>{sek(selected.total)}</strong>
             </div>
+            {(() => {
+              const b = invoiceBasis(selected);
+              return (
+                <div className="drawer-block kp-mini-margin">
+                  <span>Du tjänar</span>
+                  <MarginBadge tb={b.tb} pct={b.tbPct} />
+                  <small>Kostnad {sek(b.cost)}{selected.lines.some((l) => !l.cost) ? " · delvis uppskattad (60 %)" : ""}</small>
+                </div>
+              );
+            })()}
+            {schedules?.[selected.ref] ? <ScheduleBlock schedule={schedules[selected.ref]} /> : null}
+            <div className="drawer-block sd-drawer-actions">
+              <Link className="dash-btn" href={`/dashboard/offerter/skicka?ref=${selected.ref}`}>
+                {selected.sends?.length ? "Skicka igen eller till fler" : "Skicka offert"}
+              </Link>
+              {isEditable(selected) ? (
+                <Link className="dash-btn ghost kp-edit" href={`/dashboard/offerter/bygg?ref=${selected.ref}`}>
+                  Redigera offert – ta bort rader, ändra antal, extra poster
+                </Link>
+              ) : null}
+            </div>
+            {selected.sends?.length ? (
+              <div className="drawer-block">
+                <p className="drawer-label">Utskick · {selected.sends.length} st</p>
+                <ul className="sd-sends">
+                  {[...selected.sends].reverse().map((s) => (
+                    <li key={s.id}>
+                      <span>
+                        <b>{s.to.name}</b>
+                        <small>
+                          {s.presentation.name} · {fmtDate(s.at)}
+                        </small>
+                      </span>
+                      <a href={`/o/${s.token}`} target="_blank" rel="noreferrer">
+                        Länk
+                      </a>
+                      <a href={`/api/dashboard/quotes/${selected.ref}/pdf?send=${s.id}`} target="_blank" rel="noreferrer">
+                        PDF
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {selected.share ? (
               <div className="drawer-block">
                 <p className="drawer-label">
@@ -204,10 +275,16 @@ export default function QuotesPage() {
               ) : null}
             </div>
             <CollectPanel key={`c${selected.ref}`} quote={selected} />
-            <OrderPanel key={selected.ref} quote={selected} patch={patch} />
+            <OrderPanel key={selected.ref} quote={selected} patch={patch} onChanged={reload} />
             <div className="drawer-foot">
-              <button type="button" className="drawer-remove" onClick={() => reorder(selected)} title="Samma produkter, design och korrektur i en ny offert">
-                Beställ igen
+              <button
+                type="button"
+                className="drawer-remove"
+                disabled={reorder.busy === selected.ref}
+                onClick={() => void reorder.run(selected.ref).then((ref) => ref && router.push(`/dashboard/offerter/bygg?ref=${ref}`))}
+                title="Samma produkter, design och korrektur i ett nytt offertutkast"
+              >
+                {reorder.busy === selected.ref ? "Skapar…" : "Ny offert från denna"}
               </button>
               <a className="drawer-save" href={`/api/dashboard/quotes/${selected.ref}/pdf`} target="_blank" rel="noreferrer">
                 Visa offert-PDF

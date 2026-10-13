@@ -20,6 +20,16 @@ export type QuoteLine = {
   unitInclPrint: number; // à-pris inkl. tryck
   setup: number; // engångs tryckstart
   lineTotal: number; // (à-pris inkl tryck * antal) + tryckstart
+  cost?: number; // leverantörens kostnad för raden, när den är känd
+};
+
+type LineInput = {
+  productId: string;
+  qty: number;
+  design?: unknown;
+  /** Säljarens eget pris (à-pris inkl. tryck + tryckstart) i stället för riktpriset. */
+  price?: { unit: number; setup: number };
+  cost?: { unit: number; printUnit: number; setup: number };
 };
 
 export function priceLine(family: Family, qty: number, design?: LogoDesign): QuoteLine {
@@ -43,12 +53,20 @@ export function priceLine(family: Family, qty: number, design?: LogoDesign): Quo
 }
 
 /** Räkna fram alla rader och totalsumma från katalogen (server-sidan litar aldrig på pris från klienten). */
-export function priceQuote(input: { productId: string; qty: number; design?: unknown }[]) {
+export function priceQuote(input: LineInput[]) {
   const lines: QuoteLine[] = [];
   for (const item of input) {
     const family = familyById(item.productId);
     if (!family) continue;
-    lines.push(priceLine(family, item.qty, sanitizeDesign(family, item.design)));
+    const line = priceLine(family, item.qty, sanitizeDesign(family, item.design));
+    if (item.price) {
+      line.unitInclPrint = Math.max(0, Math.round(item.price.unit));
+      line.setup = Math.max(0, Math.round(item.price.setup));
+      line.unitProduct = Math.max(0, line.unitInclPrint - line.printPerUnit);
+      line.lineTotal = line.unitInclPrint * line.qty + line.setup;
+    }
+    if (item.cost) line.cost = Math.round((item.cost.unit + item.cost.printUnit) * line.qty + item.cost.setup);
+    lines.push(line);
   }
   const total = lines.reduce((sum, l) => sum + l.lineTotal, 0);
   return { lines, total };

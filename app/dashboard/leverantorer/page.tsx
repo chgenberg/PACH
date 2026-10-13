@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { fmtDate } from "@/components/dashboard/useQuotes";
 import { fmtDay } from "@/lib/delivery";
+import { METHOD_INFO, METHODS } from "@/lib/marking";
 import { sek } from "@/lib/pricing";
 import type { SupplierAction, SupplierView } from "@/lib/supplierProfiles";
 
@@ -46,6 +47,9 @@ function SupplierCard({ s, run, busy }: { s: SupplierView; run: (supplierId: str
     ["Frakt", t.freight],
     ["Minsta order", sek(t.minOrder)],
     ["Leveranstid", t.leadTime],
+    ["Ledtid per metod", METHODS.map((m) => `${METHOD_INFO[m].label.toLowerCase()} ${p.rules.leadDays[m]} d`).join(" · ")],
+    ["Korrektur", p.rules.proof.text],
+    ["Transport", `${p.rules.carrier}, ${p.rules.shipDays} dagar`],
     ["Tryck", t.print],
     ["Reklamation", t.returns],
     ["Bonus", t.bonus],
